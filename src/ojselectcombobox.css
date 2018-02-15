@@ -1,0 +1,5 @@
+/* the oj-select-choice element is created via knockout 
+   so the css can only be set afterwards */
+.a-IG .apex-item-ojselect .oj-select .oj-select-choice {
+  height : 100%;
+}

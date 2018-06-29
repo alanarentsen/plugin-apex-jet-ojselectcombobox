@@ -4,9 +4,9 @@
 requirejs.config(
     {
         paths:
-            {
-                'knockout': './oraclejet/2.0.2/js/libs/knockout/knockout-3.4.0',
-            },
+        {
+            'knockout': './oraclejet/2.0.2/js/libs/knockout/knockout-3.4.0',
+        },
     }
 );
 
@@ -15,10 +15,10 @@ var widget = widget || {};
 widget.ojet = window.ojet || {};
 
 //create the ojselectcombobox object
-widget.ojet.ojselectcombobox = (function (debug, util, server, item) {
+widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
     var defaultOptions = {
         value: '',
-        options: "[]",
+        options: '[]',
         component: 'ojSelect',
         placeholder: '',
         disabled: false
@@ -28,11 +28,17 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item) {
     var tempItem = {};
 
     let _create = function (itemId, options) {
+
+        // console.log(itemId);
+        // console.log(options);
+
         // copy options and apply defaults
         options = $.extend(true, {}, defaultOptions, options);
+        var defaultValue = options.value.toString();
 
         //DOM item (1 per grid)
-        var item$ = $('#' + itemId);
+        var item$ = $('#' + itemId + '_OJETCONTAINER');
+        var validityItem$ = $('#'+ itemId);
 
         //plugin data
         var viewModel = {};
@@ -72,73 +78,153 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item) {
                 //instantiate the viewModel of this view
                 viewModel = new (function () {
                     var self = this;
-                    self.value = ko.observable(options.value);
+                    self.values = ko.observableArray([]);//([options.value.toString()]);
+                    self.value = ko.pureComputed({
+                        read: function () {
+                            return parseInt(this.values()[0]) || '';
+                        },
+                        write: function (values) {
+                            if (values) {
+                                this.values([values.toString()]); //in case of one selection its an number otherwise an array we dont use multiple selection
+                            } else {
+                                this.values(values);
+                            }
+                        },
+                        owner: this
+                    }).extend({ notify: 'always' });
+
                     self.options = ko.observableArray(JSON.parse(options.options));
                     self.component = ko.observable(options.component);
                     self.placeholder = ko.observable(options.placeholder);
                     self.disabled = ko.observable(false);
 
                     self.displayValueFor = function (value) {
-                        let object = self.options().filter(a => { return a.value === value })[0];
-                        return typeof object === 'undefined' ? '' : object.label;
+                        let label = value.toString();
+                        let strValue = label;
+                        if (strValue) {
+                            let dataArr = self.options();
+                            label = 'displayValue not found! (' + strValue + ')';
+                            if (dataArr.length > 0 && typeof dataArr.children) {
+                                //we have groups
+                                let dataGroup = dataArr.find(group => group.children.find(option => option.value === strValue));
+                                if (dataGroup) {
+                                    //we've found the value
+                                    label = dataGroup.children.find(option => option.value === strValue).label;
+                                }
+                            } else {
+                                //we don't have groups
+                                let object = dataArr.find(option => option.value === strValue);
+                                if (object) {
+                                    //we've found the value
+                                    label = object.label;
+                                }
+                            }
+                        };
+
+                        return label;
                     };
 
                     self.value.subscribe(function (value) {
+                        validityItem$.val(value);
                         if (ig.isGrid && ig.data !== null) {
-                            //console.log('we need to set this value: ' + value[0]);
+                            //console.log('we need to set this value: ' + value);
                             //the plugin data has changed, update the interactive grid record
                             var model = ig.data.model;
                             var rec = ig.data.record;
-                            var displayValue = self.displayValueFor(value[0]);
-                            var newValue = { v: value[0], d: displayValue };
+                            var displayValue = self.displayValueFor(value);
+                            var newValue = { v: value.toString(), d: displayValue };
                             model.setValue(rec, ig.columnName, newValue);
                             ig.data = null;
+
+                            var event = jQuery.Event("focusout");
+                            event.ojReady = true;
+                            item$.trigger(event);
                         }
                     });
-                })(); //new viewModel
+                }); //new viewModel
 
                 //instantiate the view by editing the container made by the plugin PL/SQL code
                 if (ig.isGrid) {
-                    item$.wrapInner('<select data-bind="ojComponent: {component:component,' +
-                        'options:options,' +
-                        'value:value,' +
-                        'placeholder:placeholder,' +
-                        'disabled:disabled,' +
-                        //'optionChange:function (e,d) {console.log(\'optionChange: \'); console.log(d);},' +
-                        'rootAttributes:{style: \'max-width:100%; height:100%; margin:0px\'}}">' +
-                        '</select>');
+                    item$.on('focusin', function (e) {
+                        //debugger;
+                    })
+                        .on('focusout', function (e) {
+                            if (!e.ojReady) {
+                                e.stopPropagation();
+                            }
+                            //debugger;
+                        })
+                        .on('keydown', function (e) {
+                            //debugger;
+                        })
+                        .on('keyup', function (e) {
+                            //debugger;
+                        })
+                        .on('click', function (e) {
+                            //debugger;
+                        });
+
+                    item$.wrapInner('<div data-bind="ojComponent: {' + 
+                         'component:component' +
+                        ',options:options' +
+                        ',value:values' +
+                        ',placeholder:placeholder' +
+                        ',disabled:disabled' +
+                        ',multiple:false' +
+                        '}"/>');
                     item$.css('width', '100%');
                     item$.parent().css('height', '100%');
                 } else {
-                    item$.wrapInner('<select data-bind="ojComponent: {component:component,' +
-                        'options:options,' +
-                        'value:value,' +
-                        'placeholder:placeholder,' +
-                        'disabled:disabled,' +
-                        'rootAttributes:{style: \'margin:0px\'}}">' +
-                        '</select>');
+                    item$.wrapInner('<div data-bind="ojComponent: {' + 
+                        'component:component' +
+                        ',options:options' +
+                        ',value:values' +
+                        ',placeholder:placeholder' +
+                        ',disabled:disabled' +
+                        ',multiple:false' + 
+                        '}"/>');
                 };
+
 
                 //activate knockout for the view and viewmodel to become active
                 ko.applyBindings(viewModel, item$[0]);
+                //viewModel.options([{value: '1', label: 'option1'}, {value: '2', label: 'option2'}]);
+                //viewModel.values(["1","2"]);
+
+                apex.server.plugin(options.ajaxIdentifier, {}, { dataType: 'json' })
+                    .then(function (data) {
+                        //success
+                        viewModel.options(data);
+                        viewModel.value(options.value);
+                    }, function (data) {
+                        //failure
+                        debugger;
+                        //data.responseJSON = {error: "Invalid Ajax call!"} 
+                    });
             } //callback
         ); //require
 
         //create the apex item outside the callback function
         //for the interactive grid: there is only one per grid column
         item.create(itemId, {
+            nullValue: options.nullValue,
             setValue: function (value) {
-                //console.log('setValue: ' + value);
+                console.log('setValue: ' + value);
                 //reset the selected data record
                 ig.data = null;
 
                 //synchronise the value of the apex item with the viewModel
-                viewModel.value([value]);
+                viewModel.value(value);
             },
             getValue: function () {
-                //console.log('getValue: ' + viewModel.value());
-                //return the value of the item from the viewModel
-                return viewModel.value()[0];
+                var value = defaultValue;
+                if (viewModel.value) {
+                    //return the value of the item from the viewModel
+                    value = viewModel.value().toString();
+                }
+                //console.log('getValue: ' + value);
+
+                return value;
             },
             disable: function (e) {
                 //console.log('disable');
@@ -172,6 +258,7 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item) {
         create: _create
         , items: items
         , info: function () { return 'ojSelectCombobox plugin for OJET v2.0.2' }
-        , version: function () { return '1.0' }
+        , version: function () { return '1.3' }
     };
-})(apex.debug, apex.util, apex.server, apex.item);
+
+})(apex.debug, apex.util, apex.server, apex.item, apex.message);

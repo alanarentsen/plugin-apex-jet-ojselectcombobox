@@ -15,7 +15,7 @@ wwv_flow_api.import_begin (
  p_version_yyyy_mm_dd=>'2016.08.24'
 ,p_release=>'5.1.3.00.05'
 ,p_default_workspace_id=>1830796136045863
-,p_default_application_id=>106
+,p_default_application_id=>100
 ,p_default_owner=>'SANDBOX'
 );
 end;
@@ -28,7 +28,7 @@ end;
 prompt --application/shared_components/plugins/item_type/com_adbc_apex_jet_ojselectcombobox
 begin
 wwv_flow_api.create_plugin(
- p_id=>wwv_flow_api.id(3135065635554079)
+ p_id=>wwv_flow_api.id(6671596310259991)
 ,p_plugin_type=>'ITEM TYPE'
 ,p_name=>'COM.ADBC.APEX.JET.OJSELECTCOMBOBOX'
 ,p_display_name=>'Select List OJET'
@@ -39,87 +39,179 @@ wwv_flow_api.create_plugin(
 '#IMAGE_PREFIX#libraries/oraclejet/2.0.2/css/libs/oj/v2.0.2/alta/oj-alta-notag-min.css',
 '#PLUGIN_FILES#ojselectcombobox.css'))
 ,p_plsql_code=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'procedure render(p_item   in apex_plugin.t_item,',
+'  g_display_column constant pls_integer := 1;',
+'  g_return_column  constant pls_integer := 2;',
+'  g_group_column   constant pls_integer := 3;',
+'',
+'  procedure render(p_item   in apex_plugin.t_item,',
+'                   p_plugin in apex_plugin.t_plugin,',
+'                   p_param  in apex_plugin.t_item_render_param,',
+'                   p_result in out nocopy apex_plugin.t_item_render_result) is',
+'    l_type          varchar2(50) := p_item.attribute_01;',
+'    l_placeholder   varchar2(50) := p_item.attribute_02;',
+'    l_name          varchar2(30);',
+'    l_display_value varchar2(32767);',
+'  ',
+'    -- value without the lov null value',
+'    l_value varchar2(32767) := case',
+'                                 when p_param.value = p_item.lov_null_value then',
+'                                  null',
+'                                 else',
+'                                  p_param.value',
+'                               end;',
+'  ',
+'    c_escaped_value constant varchar2(32767) := apex_escape.html_attribute(p_param.value);',
+'  begin',
+'    if wwv_flow.g_debug then',
+'      apex_plugin_util.debug_page_item(p_plugin              => p_plugin,',
+'                                       p_page_item           => p_item,',
+'                                       p_value               => p_param.value,',
+'                                       p_is_readonly         => p_param.is_readonly,',
+'                                       p_is_printer_friendly => p_param.is_printer_friendly);',
+'    end if;',
+'  ',
+'    if (p_param.is_readonly or p_param.is_printer_friendly) then',
+'      apex_plugin_util.print_hidden_if_readonly(p_item_name           => p_item.name,',
+'                                                p_value               => p_param.value,',
+'                                                p_is_readonly         => p_param.is_readonly,',
+'                                                p_is_printer_friendly => p_param.is_printer_friendly);',
+'    ',
+'      -- get the display value',
+'      l_display_value := apex_plugin_util.get_display_data(p_sql_statement     => p_item.lov_definition,',
+'                                                           p_min_columns       => 2,',
+'                                                           p_max_columns       => 3,',
+'                                                           p_component_name    => p_item.name,',
+'                                                           p_display_column_no => g_display_column,',
+'                                                           p_search_column_no  => g_return_column,',
+'                                                           p_search_string     => l_value,',
+'                                                           p_display_extra     => p_item.lov_display_extra);',
+'    ',
+'      -- emit display span with the value',
+'      apex_plugin_util.print_display_only(p_item_name        => p_item.name,',
+'                                          p_display_value    => l_display_value,',
+'                                          p_show_line_breaks => false,',
+'                                          p_escape           => true,',
+'                                          p_attributes       => p_item.element_attributes);',
+'    else',
+'      l_name := apex_plugin.get_input_name_for_item;',
+'      ',
+'      ',
+'   --   htp.p(''<input type="hidden" id="'' || p_item.name || ''_HIDDEN" />'');',
+'      ',
+'      -- render the item for ',
+'      sys.htp.prn(''<input type="text" '' ||',
+'                  apex_plugin_util.get_element_attributes(p_item           => p_item,',
+'                                                          p_name           => l_name,',
+'                                                          p_default_class  => ''apex-item-plugin u-hidden'',',
+'                                                          p_add_id         => false,',
+'                                                          p_add_labelledby => true) ||',
+'                  ''id="'' || p_item.name || ''" '' || case when',
+'                  p_item.is_required then ''required'' else ''''',
+'                  end || ''></input>'');',
+'    ',
+'      /* <input type="text" id="noiteminput" name="noiteminput" required class="u-hidden"/>*/',
+'      ',
+'      -- render the container div ',
+'      sys.htp.prn(''<div '' || ''id="'' || p_item.name || ''_OJETCONTAINER" '' || ''class="apex-item-ojselect"'' ||',
+'                  ''style="width:'' || case when',
+'                  p_item.element_width is not null then',
+'                  p_item.element_width else 17 end || ''ch;">'' || ''</div>'');',
+'    ',
+'      -- render the container div ',
+'      /*       sys.htp.prn(''<div '' ||',
+'      wwv_flow_plugin_util.get_element_attributes(p_item,',
+'                                                  l_name,',
+'                                                  ''apex-item-ojselect apex-item-plugin'',',
+'                                                  false) ||',
+'      ''id="'' || p_item.name || ''" '' || ''style="width:'' || case when',
+'      p_item.element_width is not null then',
+'      p_item.element_width else 17 end || ''ch;">'' || ''</div>'');*/',
+'    ',
+'      -- create the item',
+'      apex_javascript.add_onload_code(p_code => ''widget.ojet.ojselectcombobox.create("'' ||',
+'                                                p_item.name || ''", {'' ||',
+'                                                apex_javascript.add_attribute(''ajaxIdentifier'',',
+'                                                                              apex_plugin.get_ajax_identifier,',
+'                                                                              true,',
+'                                                                              true) ||',
+'                                                apex_javascript.add_attribute(''nullValue'',',
+'                                                                              p_item.lov_null_value,',
+'                                                                              true,',
+'                                                                              true) ||',
+'                                                apex_javascript.add_attribute(''value'',',
+'                                                                              case',
+'                                                                                when p_param.value is null then',
+'                                                                                 ''''',
+'                                                                                else',
+'                                                                                 ltrim(rtrim(c_escaped_value))',
+'                                                                              end,',
+'                                                                              true,',
+'                                                                              true) ||',
+'                                                apex_javascript.add_attribute(''component'',',
+'                                                                              l_type,',
+'                                                                              true,',
+'                                                                              true) ||',
+'                                                apex_javascript.add_attribute(''placeholder'',',
+'                                                                              l_placeholder,',
+'                                                                              true,',
+'                                                                              false) ||',
+'                                                ''});'');',
+'    ',
+'    end if;',
+'  ',
+'    p_result.is_navigable := (not p_param.is_readonly = false and',
+'                             not p_param.is_printer_friendly);',
+'  end render;',
+'',
+'  --==',
+'',
+'  procedure metadata(p_item   in apex_plugin.t_item,',
+'                     p_plugin in apex_plugin.t_plugin,',
+'                     p_param  in apex_plugin.t_item_meta_data_param,',
+'                     p_result in out nocopy apex_plugin.t_item_meta_data_result) is',
+'  begin',
+'    p_result.escape_output := false;',
+'  end metadata;',
+'',
+'  --==',
+'',
+'  procedure validation(p_item   in apex_plugin.t_item,',
+'                       p_plugin in apex_plugin.t_plugin,',
+'                       p_param  in apex_plugin.t_item_validation_param,',
+'                       p_result in out nocopy apex_plugin.t_item_validation_result) is',
+'  begin',
+'    logger.log(''daar gaan we dan weer '');',
+'    -- if p_item.is_required and p_param.value is null then',
+'   -- p_result.message := ''#LABEL# mag niet leeg zijn hoor.'';',
+'    -- end if;',
+'  end validation;',
+'',
+'  --==',
+'',
+'  procedure ajax(p_item   in apex_plugin.t_item,',
 '                 p_plugin in apex_plugin.t_plugin,',
-'                 p_param  in apex_plugin.t_item_render_param,',
-'                 p_result in out nocopy apex_plugin.t_item_render_result) is',
-'  l_type          varchar2(50) := p_item.attribute_01;',
-'  l_placeholder   varchar2(50) := p_item.attribute_02;',
+'                 p_param  in apex_plugin.t_item_ajax_param,',
+'                 p_result in out nocopy apex_plugin.t_item_ajax_result) is',
 '  ',
-'  l_name          varchar2(30);',
-'  l_display_value varchar2(32767);',
-'',
-'  c_display_column constant pls_integer := 1;',
-'  c_return_column  constant pls_integer := 2;',
-'  c_group_column   constant pls_integer := 3;',
-'',
-'  -- value without the lov null value',
-'  l_value varchar2(32767) := case',
-'                               when p_param.value = p_item.lov_null_value then',
-'                                null',
-'                               else',
-'                                p_param.value',
-'                             end;',
-'  l_options           clob;',
-'  l_column_value_list wwv_flow_plugin_util.t_column_value_list;',
-'  l_value_found       boolean := false;',
-'  l_group_value       varchar2(4000);',
-'  l_last_group_value  varchar2(4000);',
-'  l_open_group        boolean := false;',
-'',
-'  c_escaped_value constant varchar2(32767) := apex_escape.html_attribute(p_param.value);',
-'begin',
-'  if wwv_flow.g_debug then',
-'    apex_plugin_util.debug_page_item(p_plugin              => p_plugin,',
-'                                     p_page_item           => p_item,',
-'                                     p_value               => p_param.value,',
-'                                     p_is_readonly         => p_param.is_readonly,',
-'                                     p_is_printer_friendly => p_param.is_printer_friendly);',
-'  end if;',
-'',
-'  if (p_param.is_readonly or p_param.is_printer_friendly) then',
-'    apex_plugin_util.print_hidden_if_readonly(p_item_name           => p_item.name,',
-'                                              p_value               => p_param.value,',
-'                                              p_is_readonly         => p_param.is_readonly,',
-'                                              p_is_printer_friendly => p_param.is_printer_friendly);',
+'    -- value without the lov null value',
+'    l_value varchar2(32767) := case',
+'                                 when apex_application.g_x01 =',
+'                                      p_item.lov_null_value then',
+'                                  null',
+'                                 else',
+'                                  apex_application.g_x01',
+'                               end;',
 '  ',
-'    -- get the display value',
-'    l_display_value := apex_plugin_util.get_display_data(p_sql_statement     => p_item.lov_definition,',
-'                                                         p_min_columns       => 2,',
-'                                                         p_max_columns       => 3,',
-'                                                         p_component_name    => p_item.name,',
-'                                                         p_display_column_no => c_display_column,',
-'                                                         p_search_column_no  => c_return_column,',
-'                                                         p_search_string     => l_value,',
-'                                                         p_display_extra     => p_item.lov_display_extra);',
-'  ',
-'    -- emit display span with the value',
-'    apex_plugin_util.print_display_only(p_item_name        => p_item.name,',
-'                                        p_display_value    => l_display_value,',
-'                                        p_show_line_breaks => false,',
-'                                        p_escape           => true,',
-'                                        p_attributes       => p_item.element_attributes);',
-'  else',
-'    l_name := apex_plugin.get_input_name_for_item;',
+'    l_column_value_list wwv_flow_plugin_util.t_column_value_list;',
+'    l_value_found       boolean := false;',
+'    l_group_value       varchar2(4000);',
+'    l_last_group_value  varchar2(4000);',
+'    l_open_group        boolean := false;',
+'  begin',
+'    --  logger.log(''ajax ajax '');',
 '  ',
 '    -- create list',
-'    apex_json.initialize_clob_output;',
 '    apex_json.open_array;',
-'  ',
-'    -- add extra list entry with null value to the list ',
-'    if p_item.lov_display_null then',
-'      -- add list entry      ',
-'      apex_json.open_object;',
-'      apex_json.write(''value'', '''');',
-'      apex_json.write(''label'', '''');',
-'      apex_json.close_object;',
-'      ',
-'      -- we have to tell the APEX JS framework which value should be considered as NULL',
-'      if p_item.lov_null_value is not null then',
-'        apex_javascript.add_onload_code (p_code => ''apex.widget.initPageItem('' || apex_javascript.add_value(p_item.name) ||',
-'                                                   ''{ '' || apex_javascript.add_attribute(''nullValue'', p_item.lov_null_value, true, false) || ''});'' );',
-'      end if;',
-'    end if;',
 '  ',
 '    -- get all values',
 '    l_column_value_list := apex_plugin_util.get_data(p_sql_statement  => p_item.lov_definition,',
@@ -128,44 +220,48 @@ wwv_flow_api.create_plugin(
 '                                                     p_component_name => p_item.name);',
 '  ',
 '    -- loop through the result',
-'    for i in 1 .. l_column_value_list(c_display_column).count loop',
+'    for i in 1 .. l_column_value_list(g_display_column).count loop',
 '      -- if the current item value is in the list then the value is found',
-'      l_value_found := (l_value = l_column_value_list(c_return_column)',
+'      l_value_found := (l_value = l_column_value_list(g_return_column)',
 '                        (i) or l_value_found);',
 '    ',
 '      -- if there is a group specified, handle the group list entry',
 '      begin',
-'        l_group_value := l_column_value_list(c_group_column)(i);',
+'        l_group_value := l_column_value_list(g_group_column) (i);',
 '        if (l_group_value <> l_last_group_value) or',
-'           (l_group_value is     null and l_last_group_value is not null) or',
-'           (l_group_value is not null and l_last_group_value is     null)',
-'        then',
+'           (l_group_value is null and l_last_group_value is not null) or',
+'           (l_group_value is not null and l_last_group_value is null) then',
+'        ',
 '          -- close the group list entry',
 '          if l_open_group then',
 '            apex_json.close_array();',
 '            apex_json.close_object();',
 '            l_open_group := false;',
 '          end if;',
-'',
+'        ',
 '          -- add a group list entry',
-'          if l_group_value is not null then',
-'            l_open_group := true;',
-'            apex_json.open_object;',
-'            apex_json.write(''label'', l_group_value);',
-'            apex_json.open_array(''children'');',
-'          end if;',
-'',
+'          --if l_group_value is not null then',
+'          l_open_group := true;',
+'          apex_json.open_object;',
+'          apex_json.write(''label'', l_group_value, true);',
+'          apex_json.open_array(''children'');',
+'          --end if;',
+'        ',
 '          l_last_group_value := l_group_value;',
 '        end if;',
 '      exception',
-'        when no_data_found then ',
+'        when no_data_found then',
 '          null;',
 '      end;',
-'      ',
+'    ',
 '      -- add list entry',
 '      apex_json.open_object;',
-'      apex_json.write(''value'', l_column_value_list(c_return_column) (i));',
-'      apex_json.write(''label'', l_column_value_list(c_display_column) (i));',
+'      apex_json.write(''value'',',
+'                      l_column_value_list(g_return_column) (i),',
+'                      true);',
+'      apex_json.write(''label'',',
+'                      l_column_value_list(g_display_column) (i),',
+'                      true);',
 '      apex_json.close_object;',
 '    end loop;',
 '  ',
@@ -181,83 +277,41 @@ wwv_flow_api.create_plugin(
 '       p_item.lov_display_extra) then',
 '      -- add list entry',
 '      apex_json.open_object;',
-'      apex_json.write(''value'', l_value);',
-'      apex_json.write(''label'', l_value);',
+'      apex_json.write(''value'', l_value, true);',
+'      apex_json.write(''label'', l_value, true);',
 '      apex_json.close_object;',
-'      ',
-'      -- We have to tell the APEX JS framework which value should be considered as NULL',
-'      if p_item.lov_null_value is not null then',
-'        apex_javascript.add_onload_code(p_code => ''apex.widget.initPageItem('' || apex_javascript.add_value(p_item.name) ||',
-'                                                  ''{ '' || apex_javascript.add_attribute(''nullValue'', p_item.lov_null_value, true, false) || ''});'' );',
-'      end if;',
 '    end if;',
 '  ',
 '    apex_json.close_array;',
-'    l_options := apex_json.get_clob_output;',
 '  ',
-'    -- render the container div ',
-'    sys.htp.prn(''<div'' ||',
-'                wwv_flow_plugin_util.get_element_attributes(p_item,',
-'                                                            l_name,',
-'                                                            ''apex-item-ojselect apex-item-plugin'',',
-'                                                            false) ||',
-'                ''id="'' || p_item.name || ''" '' || ''>'' || ''</div>'');',
-'  ',
-'    -- create the item',
-'    apex_javascript.add_onload_code(p_code => ''widget.ojet.ojselectcombobox.create("'' ||',
-'                                              p_item.name || ''", {'' ||',
-'                                              apex_javascript.add_attribute(''value'',',
-'                                                                            case',
-'                                                                              when p_param.value is null then',
-'                                                                               ''''',
-'                                                                              else',
-'                                                                               ltrim(rtrim(c_escaped_value))',
-'                                                                            end,',
-'                                                                            true,',
-'                                                                            true) ||',
-'                                              apex_javascript.add_attribute(''options'',',
-'                                                                            l_options,',
-'                                                                            true,',
-'                                                                            true) ||',
-'                                              apex_javascript.add_attribute(''component'',',
-'                                                                            l_type,',
-'                                                                            true,',
-'                                                                            true) ||',
-'                                              apex_javascript.add_attribute(''placeholder'',',
-'                                                                            l_placeholder,',
-'                                                                            true,',
-'                                                                            true) ||',
-'                                              apex_javascript.add_attribute(''nullValue'',',
-'                                                                            p_item.lov_null_value,',
-'                                                                            true,',
-'                                                                            false) ||',
-'                                              ''});'');',
-'  end if;',
-'',
-'  p_result.is_navigable := (not p_param.is_readonly = false and',
-'                           not p_param.is_printer_friendly);',
-'end render;',
-'',
-'procedure metadata(p_item   in apex_plugin.t_item,',
-'                   p_plugin in apex_plugin.t_plugin,',
-'                   p_param  in apex_plugin.t_item_meta_data_param,',
-'                   p_result in out nocopy apex_plugin.t_item_meta_data_result) is',
-'begin',
-'  p_result.escape_output := false;',
-'end metadata;',
-''))
+'  end ajax;'))
 ,p_api_version=>2
 ,p_render_function=>'render'
 ,p_meta_data_function=>'metadata'
-,p_standard_attributes=>'VISIBLE:SESSION_STATE:READONLY:QUICKPICK:SOURCE:ELEMENT:ELEMENT_OPTION:ENCRYPT:LOV'
+,p_ajax_function=>'ajax'
+,p_validation_function=>'validation'
+,p_standard_attributes=>'VISIBLE:SESSION_STATE:READONLY:QUICKPICK:SOURCE:ELEMENT:WIDTH:ELEMENT_OPTION:ENCRYPT:LOV'
 ,p_substitute_attributes=>true
 ,p_subscribe_plugin_settings=>false
-,p_version_identifier=>'1.1'
-,p_files_version=>38
+,p_version_identifier=>'1.3'
+,p_plugin_comment=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'#IMAGE_PREFIX#libraries/oraclejet/2.0.2/css/libs/oj/v2.0.2/alta/oj-alta-notag-min.css',
+'#PLUGIN_FILES#ojselectcombobox.css',
+'',
+'',
+'[require jet]#PLUGIN_FILES#ojselectcombobox.js',
+'',
+'or',
+'',
+'/i/adbc/plugin-apex-jet-ojselectcombobox/oj-alta-notag-min-v2.0.2.css',
+'/i/adbc/plugin-apex-jet-ojselectcombobox/ojselectcombobox.css',
+'',
+'[require jet]/i/adbc/plugin-apex-jet-ojselectcombobox/ojselectcombobox.js'))
+,p_files_version=>44
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(3135296640554084)
-,p_plugin_id=>wwv_flow_api.id(3135065635554079)
+ p_id=>wwv_flow_api.id(6671827315259996)
+,p_plugin_id=>wwv_flow_api.id(6671596310259991)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>1
 ,p_display_sequence=>10
@@ -271,22 +325,22 @@ wwv_flow_api.create_plugin_attribute(
 ,p_lov_type=>'STATIC'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(3135547359554086)
-,p_plugin_attribute_id=>wwv_flow_api.id(3135296640554084)
+ p_id=>wwv_flow_api.id(6672078034259998)
+,p_plugin_attribute_id=>wwv_flow_api.id(6671827315259996)
 ,p_display_sequence=>10
 ,p_display_value=>'ojSelect'
 ,p_return_value=>'ojSelect'
 );
 wwv_flow_api.create_plugin_attr_value(
- p_id=>wwv_flow_api.id(3136067947554087)
-,p_plugin_attribute_id=>wwv_flow_api.id(3135296640554084)
+ p_id=>wwv_flow_api.id(6672598622259999)
+,p_plugin_attribute_id=>wwv_flow_api.id(6671827315259996)
 ,p_display_sequence=>20
 ,p_display_value=>'ojCombobox'
 ,p_return_value=>'ojCombobox'
 );
 wwv_flow_api.create_plugin_attribute(
- p_id=>wwv_flow_api.id(3136512889554087)
-,p_plugin_id=>wwv_flow_api.id(3135065635554079)
+ p_id=>wwv_flow_api.id(6673043564259999)
+,p_plugin_id=>wwv_flow_api.id(6671596310259991)
 ,p_attribute_scope=>'COMPONENT'
 ,p_attribute_sequence=>2
 ,p_display_sequence=>20
@@ -298,8 +352,8 @@ wwv_flow_api.create_plugin_attribute(
 ,p_is_translatable=>false
 );
 wwv_flow_api.create_plugin_std_attribute(
- p_id=>wwv_flow_api.id(3137254885554093)
-,p_plugin_id=>wwv_flow_api.id(3135065635554079)
+ p_id=>wwv_flow_api.id(6673785560260005)
+,p_plugin_id=>wwv_flow_api.id(6671596310259991)
 ,p_name=>'LOV'
 ,p_sql_min_column_count=>2
 ,p_sql_max_column_count=>2
@@ -310,17 +364,127 @@ end;
 /
 begin
 wwv_flow_api.g_varchar2_table := wwv_flow_api.empty_varchar2_table;
-wwv_flow_api.g_varchar2_table(1) := '2F2A20746865206F6A2D73656C6563742D63686F69636520656C656D656E74206973206372656174656420766961206B6E6F636B6F7574200A202020736F20746865206373732063616E206F6E6C79206265207365742061667465727761726473202A2F';
-wwv_flow_api.g_varchar2_table(2) := '0A2E612D4947202E617065782D6974656D2D6F6A73656C656374202E6F6A2D73656C656374202E6F6A2D73656C6563742D63686F696365207B0A2020686569676874203A20313030253B0A7D0A';
+wwv_flow_api.g_varchar2_table(1) := '2275736520737472696374223B0D0A0D0A2F2F6C6F6164206B6E6F636B6F75742062656361757365205B72657175697265206A65745D2066726F6D206170657820646F65736E27740D0A726571756972656A732E636F6E666967280D0A202020207B0D0A';
+wwv_flow_api.g_varchar2_table(2) := '202020202020202070617468733A0D0A20202020202020207B0D0A202020202020202020202020276B6E6F636B6F7574273A20272E2F6F7261636C656A65742F322E302E322F6A732F6C6962732F6B6E6F636B6F75742F6B6E6F636B6F75742D332E342E';
+wwv_flow_api.g_varchar2_table(3) := '30272C0D0A20202020202020207D2C0D0A202020207D0D0A293B0D0A0D0A2F2F637265617465206F7220726575736520676C6F62616C2077696467657420666F7220616C6C20746865206F6A657420636F6D706F6E656E74730D0A766172207769646765';
+wwv_flow_api.g_varchar2_table(4) := '74203D20776964676574207C7C207B7D3B0D0A7769646765742E6F6A6574203D2077696E646F772E6F6A6574207C7C207B7D3B0D0A0D0A2F2F63726561746520746865206F6A73656C656374636F6D626F626F78206F626A6563740D0A7769646765742E';
+wwv_flow_api.g_varchar2_table(5) := '6F6A65742E6F6A73656C656374636F6D626F626F78203D202866756E6374696F6E202864656275672C207574696C2C207365727665722C206974656D2C206D65737361676529207B0D0A202020207661722064656661756C744F7074696F6E73203D207B';
+wwv_flow_api.g_varchar2_table(6) := '0D0A202020202020202076616C75653A2027272C0D0A20202020202020206F7074696F6E733A20275B5D272C0D0A2020202020202020636F6D706F6E656E743A20276F6A53656C656374272C0D0A2020202020202020706C616365686F6C6465723A2027';
+wwv_flow_api.g_varchar2_table(7) := '272C0D0A202020202020202064697361626C65643A2066616C73650D0A202020207D3B0D0A0D0A20202020766172206974656D73203D205B5D3B0D0A202020207661722074656D704974656D203D207B7D3B0D0A0D0A202020206C6574205F6372656174';
+wwv_flow_api.g_varchar2_table(8) := '65203D2066756E6374696F6E20286974656D49642C206F7074696F6E7329207B0D0A0D0A20202020202020202F2F20636F6E736F6C652E6C6F67286974656D4964293B0D0A20202020202020202F2F20636F6E736F6C652E6C6F67286F7074696F6E7329';
+wwv_flow_api.g_varchar2_table(9) := '3B0D0A0D0A20202020202020202F2F20636F7079206F7074696F6E7320616E64206170706C792064656661756C74730D0A20202020202020206F7074696F6E73203D20242E657874656E6428747275652C207B7D2C2064656661756C744F7074696F6E73';
+wwv_flow_api.g_varchar2_table(10) := '2C206F7074696F6E73293B0D0A20202020202020207661722064656661756C7456616C7565203D206F7074696F6E732E76616C75652E746F537472696E6728293B0D0A0D0A20202020202020202F2F444F4D206974656D20283120706572206772696429';
+wwv_flow_api.g_varchar2_table(11) := '0D0A2020202020202020766172206974656D24203D202428272327202B206974656D4964202B20275F4F4A4554434F4E5441494E455227293B0D0A20202020202020207661722076616C69646974794974656D24203D2024282723272B206974656D4964';
+wwv_flow_api.g_varchar2_table(12) := '293B0D0A0D0A20202020202020202F2F706C7567696E20646174610D0A202020202020202076617220766965774D6F64656C203D207B7D3B0D0A0D0A20202020202020202F2F696E746572616374697665206772696420646174610D0A20202020202020';
+wwv_flow_api.g_varchar2_table(13) := '20766172206967203D207B7D3B0D0A202020202020202069672E6772696424203D206974656D242E636C6F7365737428272E742D4952522D726567696F6E2729207C7C205B5D3B0D0A202020202020202069672E697347726964203D2069672E67726964';
+wwv_flow_api.g_varchar2_table(14) := '242E6C656E677468203D3D3D20313B0D0A202020202020202069672E64617461203D206E756C6C3B0D0A0D0A20202020202020206966202869672E69734772696429207B0D0A20202020202020202020202069672E67726964242E6F6E2822696E746572';
+wwv_flow_api.g_varchar2_table(15) := '61637469766567726964766965776D6F64656C637265617465222C2066756E6374696F6E20286576656E742C2063757272656E745669657729207B0D0A202020202020202020202020202020202F2F636F6E736F6C652E6C6F672827696E746572616374';
+wwv_flow_api.g_varchar2_table(16) := '69766567726964766965776D6F64656C63726561746527293B0D0A2020202020202020202020202020202069672E697347726964203D20747275653B0D0A2020202020202020202020202020202069672E776964676574203D20617065782E726567696F';
+wwv_flow_api.g_varchar2_table(17) := '6E286576656E742E63757272656E745461726765742E6964292E77696467657428293B0D0A2020202020202020202020202020202069672E636F6C756D6E203D2069672E7769646765742E696E7465726163746976654772696428276F7074696F6E272C';
+wwv_flow_api.g_varchar2_table(18) := '2027636F6E66696727292E636F6C756D6E732E66696C7465722861203D3E207B2072657475726E20612E7374617469634964203D3D3D206974656D4964207D293B0D0A2020202020202020202020202020202069672E636F6C756D6E4E616D65203D2027';
+wwv_flow_api.g_varchar2_table(19) := '273B0D0A0D0A202020202020202020202020202020202F2F746F646F3A20636865636B2069662074686973206974656D20697320696E207468652069670D0A202020202020202020202020202020206966202869672E636F6C756D6E2E6C656E67746820';
+wwv_flow_api.g_varchar2_table(20) := '3E203029207B0D0A202020202020202020202020202020202020202069672E636F6C756D6E4E616D65203D2069672E636F6C756D6E5B305D2E6E616D653B0D0A202020202020202020202020202020207D0D0A2020202020202020202020207D293B0D0A';
+wwv_flow_api.g_varchar2_table(21) := '0D0A2020202020202020202020202F2F74686973206576656E74206F6E6C79206669726573207768656E207374617274696E6720746F20656469742074686520696E746572616374697665206772696420726F770D0A2020202020202020202020202F2F';
+wwv_flow_api.g_varchar2_table(22) := '6974656D242E706172656E7428292E706172656E7428292E706172656E7428292E6F6E282761706578626567696E7265636F726465646974272C2066756E6374696F6E20286576656E742C206461746129207B0D0A20202020202020202020202069672E';
+wwv_flow_api.g_varchar2_table(23) := '67726964242E6F6E282761706578626567696E7265636F726465646974272C2066756E6374696F6E20286576656E742C206461746129207B0D0A202020202020202020202020202020202F2F636F6E736F6C652E6C6F67282761706578626567696E7265';
+wwv_flow_api.g_varchar2_table(24) := '636F72646564697427293B0D0A202020202020202020202020202020202F2F73617665207468652065646974696E67207265636F7264206461746120676C6F62616C6C7920696E2074686520706C7567696E0D0A20202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(25) := '69672E64617461203D20646174613B0D0A2020202020202020202020207D293B0D0A20202020202020207D0D0A0D0A20202020202020202F2F696E697469616C697A65207669657720616E6420766965776D6F64656C0D0A202020202020202072657175';
+wwv_flow_api.g_varchar2_table(26) := '697265285B276F6A732F6F6A636F7265272C20276B6E6F636B6F7574272C20276A7175657279272C20276F6A732F6F6A6B6E6F636B6F7574272C20276F6A732F6F6A73656C656374636F6D626F626F78275D2C0D0A20202020202020202020202066756E';
+wwv_flow_api.g_varchar2_table(27) := '6374696F6E20286F6A2C206B6F2C202429207B0D0A202020202020202020202020202020202F2F696E7374616E74696174652074686520766965774D6F64656C206F66207468697320766965770D0A20202020202020202020202020202020766965774D';
+wwv_flow_api.g_varchar2_table(28) := '6F64656C203D206E6577202866756E6374696F6E202829207B0D0A20202020202020202020202020202020202020207661722073656C66203D20746869733B0D0A202020202020202020202020202020202020202073656C662E76616C756573203D206B';
+wwv_flow_api.g_varchar2_table(29) := '6F2E6F627365727661626C654172726179285B5D293B2F2F285B6F7074696F6E732E76616C75652E746F537472696E6728295D293B0D0A202020202020202020202020202020202020202073656C662E76616C7565203D206B6F2E70757265436F6D7075';
+wwv_flow_api.g_varchar2_table(30) := '746564287B0D0A202020202020202020202020202020202020202020202020726561643A2066756E6374696F6E202829207B0D0A2020202020202020202020202020202020202020202020202020202072657475726E207061727365496E742874686973';
+wwv_flow_api.g_varchar2_table(31) := '2E76616C75657328295B305D29207C7C2027273B0D0A2020202020202020202020202020202020202020202020207D2C0D0A20202020202020202020202020202020202020202020202077726974653A2066756E6374696F6E202876616C75657329207B';
+wwv_flow_api.g_varchar2_table(32) := '0D0A202020202020202020202020202020202020202020202020202020206966202876616C75657329207B0D0A2020202020202020202020202020202020202020202020202020202020202020746869732E76616C756573285B76616C7565732E746F53';
+wwv_flow_api.g_varchar2_table(33) := '7472696E6728295D293B202F2F696E2063617365206F66206F6E652073656C656374696F6E2069747320616E206E756D626572206F746865727769736520616E20617272617920776520646F6E7420757365206D756C7469706C652073656C656374696F';
+wwv_flow_api.g_varchar2_table(34) := '6E0D0A202020202020202020202020202020202020202020202020202020207D20656C7365207B0D0A2020202020202020202020202020202020202020202020202020202020202020746869732E76616C7565732876616C756573293B0D0A2020202020';
+wwv_flow_api.g_varchar2_table(35) := '20202020202020202020202020202020202020202020207D0D0A2020202020202020202020202020202020202020202020207D2C0D0A2020202020202020202020202020202020202020202020206F776E65723A20746869730D0A202020202020202020';
+wwv_flow_api.g_varchar2_table(36) := '20202020202020202020207D292E657874656E64287B206E6F746966793A2027616C7761797327207D293B0D0A0D0A202020202020202020202020202020202020202073656C662E6F7074696F6E73203D206B6F2E6F627365727661626C654172726179';
+wwv_flow_api.g_varchar2_table(37) := '284A534F4E2E7061727365286F7074696F6E732E6F7074696F6E7329293B0D0A202020202020202020202020202020202020202073656C662E636F6D706F6E656E74203D206B6F2E6F627365727661626C65286F7074696F6E732E636F6D706F6E656E74';
+wwv_flow_api.g_varchar2_table(38) := '293B0D0A202020202020202020202020202020202020202073656C662E706C616365686F6C646572203D206B6F2E6F627365727661626C65286F7074696F6E732E706C616365686F6C646572293B0D0A2020202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(39) := '73656C662E64697361626C6564203D206B6F2E6F627365727661626C652866616C7365293B0D0A0D0A202020202020202020202020202020202020202073656C662E646973706C617956616C7565466F72203D2066756E6374696F6E202876616C756529';
+wwv_flow_api.g_varchar2_table(40) := '207B0D0A2020202020202020202020202020202020202020202020206C6574206C6162656C203D2076616C75652E746F537472696E6728293B0D0A2020202020202020202020202020202020202020202020206C65742073747256616C7565203D206C61';
+wwv_flow_api.g_varchar2_table(41) := '62656C3B0D0A2020202020202020202020202020202020202020202020206966202873747256616C756529207B0D0A202020202020202020202020202020202020202020202020202020206C65742064617461417272203D2073656C662E6F7074696F6E';
+wwv_flow_api.g_varchar2_table(42) := '7328293B0D0A202020202020202020202020202020202020202020202020202020206C6162656C203D2027646973706C617956616C7565206E6F7420666F756E6421202827202B2073747256616C7565202B202729273B0D0A2020202020202020202020';
+wwv_flow_api.g_varchar2_table(43) := '202020202020202020202020202020202069662028646174614172722E6C656E677468203E203020262620747970656F6620646174614172722E6368696C6472656E29207B0D0A2020202020202020202020202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(44) := '2020202F2F776520686176652067726F7570730D0A20202020202020202020202020202020202020202020202020202020202020206C6574206461746147726F7570203D20646174614172722E66696E642867726F7570203D3E2067726F75702E636869';
+wwv_flow_api.g_varchar2_table(45) := '6C6472656E2E66696E64286F7074696F6E203D3E206F7074696F6E2E76616C7565203D3D3D2073747256616C756529293B0D0A2020202020202020202020202020202020202020202020202020202020202020696620286461746147726F757029207B0D';
+wwv_flow_api.g_varchar2_table(46) := '0A2020202020202020202020202020202020202020202020202020202020202020202020202F2F776527766520666F756E64207468652076616C75650D0A2020202020202020202020202020202020202020202020202020202020202020202020206C61';
+wwv_flow_api.g_varchar2_table(47) := '62656C203D206461746147726F75702E6368696C6472656E2E66696E64286F7074696F6E203D3E206F7074696F6E2E76616C7565203D3D3D2073747256616C7565292E6C6162656C3B0D0A20202020202020202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(48) := '202020202020207D0D0A202020202020202020202020202020202020202020202020202020207D20656C7365207B0D0A20202020202020202020202020202020202020202020202020202020202020202F2F776520646F6E277420686176652067726F75';
+wwv_flow_api.g_varchar2_table(49) := '70730D0A20202020202020202020202020202020202020202020202020202020202020206C6574206F626A656374203D20646174614172722E66696E64286F7074696F6E203D3E206F7074696F6E2E76616C7565203D3D3D2073747256616C7565293B0D';
+wwv_flow_api.g_varchar2_table(50) := '0A2020202020202020202020202020202020202020202020202020202020202020696620286F626A65637429207B0D0A2020202020202020202020202020202020202020202020202020202020202020202020202F2F776527766520666F756E64207468';
+wwv_flow_api.g_varchar2_table(51) := '652076616C75650D0A2020202020202020202020202020202020202020202020202020202020202020202020206C6162656C203D206F626A6563742E6C6162656C3B0D0A2020202020202020202020202020202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(52) := '7D0D0A202020202020202020202020202020202020202020202020202020207D0D0A2020202020202020202020202020202020202020202020207D3B0D0A0D0A20202020202020202020202020202020202020202020202072657475726E206C6162656C';
+wwv_flow_api.g_varchar2_table(53) := '3B0D0A20202020202020202020202020202020202020207D3B0D0A0D0A202020202020202020202020202020202020202073656C662E76616C75652E7375627363726962652866756E6374696F6E202876616C756529207B0D0A20202020202020202020';
+wwv_flow_api.g_varchar2_table(54) := '202020202020202020202020202076616C69646974794974656D242E76616C2876616C7565293B0D0A2020202020202020202020202020202020202020202020206966202869672E6973477269642026262069672E6461746120213D3D206E756C6C2920';
+wwv_flow_api.g_varchar2_table(55) := '7B0D0A202020202020202020202020202020202020202020202020202020202F2F636F6E736F6C652E6C6F6728277765206E65656420746F2073657420746869732076616C75653A2027202B2076616C7565293B0D0A2020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(56) := '20202020202020202020202020202F2F74686520706C7567696E206461746120686173206368616E6765642C207570646174652074686520696E7465726163746976652067726964207265636F72640D0A20202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(57) := '202020202020202020766172206D6F64656C203D2069672E646174612E6D6F64656C3B0D0A2020202020202020202020202020202020202020202020202020202076617220726563203D2069672E646174612E7265636F72643B0D0A2020202020202020';
+wwv_flow_api.g_varchar2_table(58) := '202020202020202020202020202020202020202076617220646973706C617956616C7565203D2073656C662E646973706C617956616C7565466F722876616C7565293B0D0A20202020202020202020202020202020202020202020202020202020766172';
+wwv_flow_api.g_varchar2_table(59) := '206E657756616C7565203D207B20763A2076616C75652E746F537472696E6728292C20643A20646973706C617956616C7565207D3B0D0A202020202020202020202020202020202020202020202020202020206D6F64656C2E73657456616C7565287265';
+wwv_flow_api.g_varchar2_table(60) := '632C2069672E636F6C756D6E4E616D652C206E657756616C7565293B0D0A2020202020202020202020202020202020202020202020202020202069672E64617461203D206E756C6C3B0D0A0D0A2020202020202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(61) := '2020202020766172206576656E74203D206A51756572792E4576656E742822666F6375736F757422293B0D0A202020202020202020202020202020202020202020202020202020206576656E742E6F6A5265616479203D20747275653B0D0A2020202020';
+wwv_flow_api.g_varchar2_table(62) := '20202020202020202020202020202020202020202020206974656D242E74726967676572286576656E74293B0D0A2020202020202020202020202020202020202020202020207D0D0A20202020202020202020202020202020202020207D293B0D0A2020';
+wwv_flow_api.g_varchar2_table(63) := '20202020202020202020202020207D293B202F2F6E657720766965774D6F64656C0D0A0D0A202020202020202020202020202020202F2F696E7374616E74696174652074686520766965772062792065646974696E672074686520636F6E7461696E6572';
+wwv_flow_api.g_varchar2_table(64) := '206D6164652062792074686520706C7567696E20504C2F53514C20636F64650D0A202020202020202020202020202020206966202869672E69734772696429207B0D0A20202020202020202020202020202020202020206974656D242E6F6E2827666F63';
+wwv_flow_api.g_varchar2_table(65) := '7573696E272C2066756E6374696F6E20286529207B0D0A2020202020202020202020202020202020202020202020202F2F64656275676765723B0D0A20202020202020202020202020202020202020207D290D0A20202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(66) := '20202020202020202E6F6E2827666F6375736F7574272C2066756E6374696F6E20286529207B0D0A202020202020202020202020202020202020202020202020202020206966202821652E6F6A526561647929207B0D0A20202020202020202020202020';
+wwv_flow_api.g_varchar2_table(67) := '20202020202020202020202020202020202020652E73746F7050726F7061676174696F6E28293B0D0A202020202020202020202020202020202020202020202020202020207D0D0A20202020202020202020202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(68) := '2F2F64656275676765723B0D0A2020202020202020202020202020202020202020202020207D290D0A2020202020202020202020202020202020202020202020202E6F6E28276B6579646F776E272C2066756E6374696F6E20286529207B0D0A20202020';
+wwv_flow_api.g_varchar2_table(69) := '2020202020202020202020202020202020202020202020202F2F64656275676765723B0D0A2020202020202020202020202020202020202020202020207D290D0A2020202020202020202020202020202020202020202020202E6F6E28276B6579757027';
+wwv_flow_api.g_varchar2_table(70) := '2C2066756E6374696F6E20286529207B0D0A202020202020202020202020202020202020202020202020202020202F2F64656275676765723B0D0A2020202020202020202020202020202020202020202020207D290D0A20202020202020202020202020';
+wwv_flow_api.g_varchar2_table(71) := '20202020202020202020202E6F6E2827636C69636B272C2066756E6374696F6E20286529207B0D0A202020202020202020202020202020202020202020202020202020202F2F64656275676765723B0D0A20202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(72) := '20202020207D293B0D0A0D0A20202020202020202020202020202020202020206974656D242E77726170496E6E657228273C64697620646174612D62696E643D226F6A436F6D706F6E656E743A207B27202B200D0A202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(73) := '2020202020202020202027636F6D706F6E656E743A636F6D706F6E656E7427202B0D0A202020202020202020202020202020202020202020202020272C6F7074696F6E733A6F7074696F6E7327202B0D0A20202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(74) := '2020202020272C76616C75653A76616C75657327202B0D0A202020202020202020202020202020202020202020202020272C706C616365686F6C6465723A706C616365686F6C64657227202B0D0A20202020202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(75) := '2020272C64697361626C65643A64697361626C656427202B0D0A202020202020202020202020202020202020202020202020272C6D756C7469706C653A66616C736527202B0D0A202020202020202020202020202020202020202020202020277D222F3E';
+wwv_flow_api.g_varchar2_table(76) := '27293B0D0A20202020202020202020202020202020202020206974656D242E63737328277769647468272C20273130302527293B0D0A20202020202020202020202020202020202020206974656D242E706172656E7428292E6373732827686569676874';
+wwv_flow_api.g_varchar2_table(77) := '272C20273130302527293B0D0A202020202020202020202020202020207D20656C7365207B0D0A20202020202020202020202020202020202020206974656D242E77726170496E6E657228273C64697620646174612D62696E643D226F6A436F6D706F6E';
+wwv_flow_api.g_varchar2_table(78) := '656E743A207B27202B200D0A20202020202020202020202020202020202020202020202027636F6D706F6E656E743A636F6D706F6E656E7427202B0D0A202020202020202020202020202020202020202020202020272C6F7074696F6E733A6F7074696F';
+wwv_flow_api.g_varchar2_table(79) := '6E7327202B0D0A202020202020202020202020202020202020202020202020272C76616C75653A76616C75657327202B0D0A202020202020202020202020202020202020202020202020272C706C616365686F6C6465723A706C616365686F6C64657227';
+wwv_flow_api.g_varchar2_table(80) := '202B0D0A202020202020202020202020202020202020202020202020272C64697361626C65643A64697361626C656427202B0D0A202020202020202020202020202020202020202020202020272C6D756C7469706C653A66616C736527202B200D0A2020';
+wwv_flow_api.g_varchar2_table(81) := '20202020202020202020202020202020202020202020277D222F3E27293B0D0A202020202020202020202020202020207D3B0D0A0D0A0D0A202020202020202020202020202020202F2F6163746976617465206B6E6F636B6F757420666F722074686520';
+wwv_flow_api.g_varchar2_table(82) := '7669657720616E6420766965776D6F64656C20746F206265636F6D65206163746976650D0A202020202020202020202020202020206B6F2E6170706C7942696E64696E677328766965774D6F64656C2C206974656D245B305D293B0D0A20202020202020';
+wwv_flow_api.g_varchar2_table(83) := '2020202020202020202F2F766965774D6F64656C2E6F7074696F6E73285B7B76616C75653A202731272C206C6162656C3A20276F7074696F6E31277D2C207B76616C75653A202732272C206C6162656C3A20276F7074696F6E32277D5D293B0D0A202020';
+wwv_flow_api.g_varchar2_table(84) := '202020202020202020202020202F2F766965774D6F64656C2E76616C756573285B2231222C2232225D293B0D0A0D0A20202020202020202020202020202020617065782E7365727665722E706C7567696E286F7074696F6E732E616A61784964656E7469';
+wwv_flow_api.g_varchar2_table(85) := '666965722C207B7D2C207B2064617461547970653A20276A736F6E27207D290D0A20202020202020202020202020202020202020202E7468656E2866756E6374696F6E20286461746129207B0D0A20202020202020202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(86) := '20202F2F737563636573730D0A202020202020202020202020202020202020202020202020766965774D6F64656C2E6F7074696F6E732864617461293B0D0A202020202020202020202020202020202020202020202020766965774D6F64656C2E76616C';
+wwv_flow_api.g_varchar2_table(87) := '7565286F7074696F6E732E76616C7565293B0D0A20202020202020202020202020202020202020207D2C2066756E6374696F6E20286461746129207B0D0A2020202020202020202020202020202020202020202020202F2F6661696C7572650D0A202020';
+wwv_flow_api.g_varchar2_table(88) := '20202020202020202020202020202020202020202064656275676765723B0D0A2020202020202020202020202020202020202020202020202F2F646174612E726573706F6E73654A534F4E203D207B6572726F723A2022496E76616C696420416A617820';
+wwv_flow_api.g_varchar2_table(89) := '63616C6C21227D200D0A20202020202020202020202020202020202020207D293B0D0A2020202020202020202020207D202F2F63616C6C6261636B0D0A2020202020202020293B202F2F726571756972650D0A0D0A20202020202020202F2F6372656174';
+wwv_flow_api.g_varchar2_table(90) := '65207468652061706578206974656D206F757473696465207468652063616C6C6261636B2066756E6374696F6E0D0A20202020202020202F2F666F722074686520696E74657261637469766520677269643A207468657265206973206F6E6C79206F6E65';
+wwv_flow_api.g_varchar2_table(91) := '20706572206772696420636F6C756D6E0D0A20202020202020206974656D2E637265617465286974656D49642C207B0D0A2020202020202020202020206E756C6C56616C75653A206F7074696F6E732E6E756C6C56616C75652C0D0A2020202020202020';
+wwv_flow_api.g_varchar2_table(92) := '2020202073657456616C75653A2066756E6374696F6E202876616C756529207B0D0A20202020202020202020202020202020636F6E736F6C652E6C6F67282773657456616C75653A2027202B2076616C7565293B0D0A2020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(93) := '20202F2F7265736574207468652073656C65637465642064617461207265636F72640D0A2020202020202020202020202020202069672E64617461203D206E756C6C3B0D0A0D0A202020202020202020202020202020202F2F73796E6368726F6E697365';
+wwv_flow_api.g_varchar2_table(94) := '207468652076616C7565206F66207468652061706578206974656D20776974682074686520766965774D6F64656C0D0A20202020202020202020202020202020766965774D6F64656C2E76616C75652876616C7565293B0D0A2020202020202020202020';
+wwv_flow_api.g_varchar2_table(95) := '207D2C0D0A20202020202020202020202067657456616C75653A2066756E6374696F6E202829207B0D0A202020202020202020202020202020207661722076616C7565203D2064656661756C7456616C75653B0D0A202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(96) := '2069662028766965774D6F64656C2E76616C756529207B0D0A20202020202020202020202020202020202020202F2F72657475726E207468652076616C7565206F6620746865206974656D2066726F6D2074686520766965774D6F64656C0D0A20202020';
+wwv_flow_api.g_varchar2_table(97) := '2020202020202020202020202020202076616C7565203D20766965774D6F64656C2E76616C756528292E746F537472696E6728293B0D0A202020202020202020202020202020207D0D0A202020202020202020202020202020202F2F636F6E736F6C652E';
+wwv_flow_api.g_varchar2_table(98) := '6C6F67282767657456616C75653A2027202B2076616C7565293B0D0A0D0A2020202020202020202020202020202072657475726E2076616C75653B0D0A2020202020202020202020207D2C0D0A20202020202020202020202064697361626C653A206675';
+wwv_flow_api.g_varchar2_table(99) := '6E6374696F6E20286529207B0D0A202020202020202020202020202020202F2F636F6E736F6C652E6C6F67282764697361626C6527293B0D0A202020202020202020202020202020202F2F64697361626C6520746865206974656D0D0A20202020202020';
+wwv_flow_api.g_varchar2_table(100) := '202020202020202020766965774D6F64656C2E64697361626C65642874727565293B0D0A2020202020202020202020207D2C0D0A202020202020202020202020656E61626C653A2066756E6374696F6E20286529207B0D0A202020202020202020202020';
+wwv_flow_api.g_varchar2_table(101) := '202020202F2F636F6E736F6C652E6C6F672827656E61626C6527293B0D0A202020202020202020202020202020202F2F656E61626C6520746865206974656D0D0A20202020202020202020202020202020766965774D6F64656C2E64697361626C656428';
+wwv_flow_api.g_varchar2_table(102) := '66616C7365293B0D0A2020202020202020202020207D2C0D0A202020202020202020202020646973706C617956616C7565466F723A2066756E6374696F6E202876616C756529207B0D0A202020202020202020202020202020202F2F636F6E736F6C652E';
+wwv_flow_api.g_varchar2_table(103) := '6C6F672827646973706C617956616C7565466F723A2027202B2076616C7565202B20272028766965774D6F64656C2076616C75653A2027202B20766965774D6F64656C2E76616C75652829202B20272927293B0D0A202020202020202020202020202020';
+wwv_flow_api.g_varchar2_table(104) := '202F2F736561726368207468652072657475726E2076616C756520696E2074686520766965774D6F64656C20616E642072657475726E2074686520646973706C61792076616C75650D0A2020202020202020202020202020202072657475726E20766965';
+wwv_flow_api.g_varchar2_table(105) := '774D6F64656C2E646973706C617956616C7565466F722876616C7565293B0D0A2020202020202020202020207D0D0A20202020202020207D293B202F2F6974656D2E6372656174650D0A0D0A20202020202020202F2F696E697469616C697A6520746869';
+wwv_flow_api.g_varchar2_table(106) := '73206974656D0D0A202020202020202074656D704974656D2E6964203D206974656D49643B0D0A202020202020202074656D704974656D2E6F7074696F6E73203D206F7074696F6E733B0D0A202020202020202074656D704974656D2E61706578203D20';
+wwv_flow_api.g_varchar2_table(107) := '6974656D286974656D24293B0D0A202020202020202074656D704974656D2E6E6F6465203D206974656D243B0D0A202020202020202074656D704974656D2E73657444617461203D2066756E6374696F6E20286461746129207B2074656D704974656D2E';
+wwv_flow_api.g_varchar2_table(108) := '617065782E73657456616C7565282727293B20766965774D6F64656C2E6F7074696F6E73286461746129207D3B0D0A202020202020202074656D704974656D2E67657444617461203D2066756E6374696F6E202829207B2072657475726E20766965774D';
+wwv_flow_api.g_varchar2_table(109) := '6F64656C2E6F7074696F6E7328293B207D3B0D0A20202020202020206974656D732E707573682874656D704974656D293B0D0A202020202020202074656D704974656D203D207B7D3B0D0A202020207D3B202F2F5F6372656174650D0A0D0A2020202072';
+wwv_flow_api.g_varchar2_table(110) := '657475726E207B0D0A20202020202020206372656174653A205F6372656174650D0A20202020202020202C206974656D733A206974656D730D0A20202020202020202C20696E666F3A2066756E6374696F6E202829207B2072657475726E20276F6A5365';
+wwv_flow_api.g_varchar2_table(111) := '6C656374436F6D626F626F7820706C7567696E20666F72204F4A45542076322E302E3227207D0D0A20202020202020202C2076657273696F6E3A2066756E6374696F6E202829207B2072657475726E2027312E3327207D0D0A202020207D3B0D0A0D0A7D';
+wwv_flow_api.g_varchar2_table(112) := '2928617065782E64656275672C20617065782E7574696C2C20617065782E7365727665722C20617065782E6974656D2C20617065782E6D657373616765293B0D0A';
 null;
 end;
 /
 begin
 wwv_flow_api.create_plugin_file(
- p_id=>wwv_flow_api.id(3138347251598563)
-,p_plugin_id=>wwv_flow_api.id(3135065635554079)
-,p_file_name=>'ojselectcombobox.css'
-,p_mime_type=>'text/css'
+ p_id=>wwv_flow_api.id(4210976863180898)
+,p_plugin_id=>wwv_flow_api.id(6671596310259991)
+,p_file_name=>'ojselectcombobox.js'
+,p_mime_type=>'application/javascript'
 ,p_file_charset=>'utf-8'
 ,p_file_content=>wwv_flow_api.varchar2_to_blob(wwv_flow_api.g_varchar2_table)
 );
@@ -328,90 +492,65 @@ end;
 /
 begin
 wwv_flow_api.g_varchar2_table := wwv_flow_api.empty_varchar2_table;
-wwv_flow_api.g_varchar2_table(1) := '2275736520737472696374223B0D0A0D0A2F2F6C6F6164206B6E6F636B6F75742062656361757365205B72657175697265206A65745D2066726F6D206170657820646F65736E27740D0A726571756972656A732E636F6E666967280D0A202020207B0D0A';
-wwv_flow_api.g_varchar2_table(2) := '202020202020202070617468733A0D0A2020202020202020202020207B0D0A20202020202020202020202020202020276B6E6F636B6F7574273A20272E2F6F7261636C656A65742F322E302E322F6A732F6C6962732F6B6E6F636B6F75742F6B6E6F636B';
-wwv_flow_api.g_varchar2_table(3) := '6F75742D332E342E30272C0D0A2020202020202020202020207D2C0D0A202020207D0D0A293B0D0A0D0A2F2F637265617465206F7220726575736520676C6F62616C2077696467657420666F7220616C6C20746865206F6A657420636F6D706F6E656E74';
-wwv_flow_api.g_varchar2_table(4) := '730D0A76617220776964676574203D20776964676574207C7C207B7D3B0D0A7769646765742E6F6A6574203D2077696E646F772E6F6A6574207C7C207B7D3B0D0A0D0A2F2F63726561746520746865206F6A73656C656374636F6D626F626F78206F626A';
-wwv_flow_api.g_varchar2_table(5) := '6563740D0A7769646765742E6F6A65742E6F6A73656C656374636F6D626F626F78203D202866756E6374696F6E202864656275672C207574696C2C207365727665722C206974656D29207B0D0A202020207661722064656661756C744F7074696F6E7320';
-wwv_flow_api.g_varchar2_table(6) := '3D207B0D0A202020202020202076616C75653A2027272C0D0A20202020202020206F7074696F6E733A20225B5D222C0D0A2020202020202020636F6D706F6E656E743A20276F6A53656C656374272C0D0A2020202020202020706C616365686F6C646572';
-wwv_flow_api.g_varchar2_table(7) := '3A2027272C0D0A202020202020202064697361626C65643A2066616C73650D0A202020207D3B0D0A0D0A20202020766172206974656D73203D205B5D3B0D0A202020207661722074656D704974656D203D207B7D3B0D0A0D0A202020206C6574205F6372';
-wwv_flow_api.g_varchar2_table(8) := '65617465203D2066756E6374696F6E20286974656D49642C206F7074696F6E7329207B0D0A20202020202020202F2F20636F7079206F7074696F6E7320616E64206170706C792064656661756C74730D0A20202020202020206F7074696F6E73203D2024';
-wwv_flow_api.g_varchar2_table(9) := '2E657874656E6428747275652C207B7D2C2064656661756C744F7074696F6E732C206F7074696F6E73293B0D0A0D0A20202020202020202F2F444F4D206974656D202831207065722067726964290D0A2020202020202020766172206974656D24203D20';
-wwv_flow_api.g_varchar2_table(10) := '2428272327202B206974656D4964293B0D0A0D0A20202020202020202F2F706C7567696E20646174610D0A202020202020202076617220766965774D6F64656C203D207B7D3B0D0A0D0A20202020202020202F2F696E7465726163746976652067726964';
-wwv_flow_api.g_varchar2_table(11) := '20646174610D0A2020202020202020766172206967203D207B7D3B0D0A202020202020202069672E6772696424203D206974656D242E636C6F7365737428272E742D4952522D726567696F6E2729207C7C205B5D3B0D0A202020202020202069672E6973';
-wwv_flow_api.g_varchar2_table(12) := '47726964203D2069672E67726964242E6C656E677468203D3D3D20313B0D0A202020202020202069672E64617461203D206E756C6C3B0D0A0D0A20202020202020206966202869672E69734772696429207B0D0A20202020202020202020202069672E67';
-wwv_flow_api.g_varchar2_table(13) := '726964242E6F6E2822696E74657261637469766567726964766965776D6F64656C637265617465222C2066756E6374696F6E20286576656E742C2063757272656E745669657729207B0D0A202020202020202020202020202020202F2F636F6E736F6C65';
-wwv_flow_api.g_varchar2_table(14) := '2E6C6F672827696E74657261637469766567726964766965776D6F64656C63726561746527293B0D0A2020202020202020202020202020202069672E697347726964203D20747275653B0D0A2020202020202020202020202020202069672E7769646765';
-wwv_flow_api.g_varchar2_table(15) := '74203D20617065782E726567696F6E286576656E742E63757272656E745461726765742E6964292E77696467657428293B0D0A2020202020202020202020202020202069672E636F6C756D6E203D2069672E7769646765742E696E746572616374697665';
-wwv_flow_api.g_varchar2_table(16) := '4772696428276F7074696F6E272C2027636F6E66696727292E636F6C756D6E732E66696C7465722861203D3E207B2072657475726E20612E7374617469634964203D3D3D206974656D4964207D293B0D0A2020202020202020202020202020202069672E';
-wwv_flow_api.g_varchar2_table(17) := '636F6C756D6E4E616D65203D2027273B0D0A0D0A202020202020202020202020202020202F2F746F646F3A20636865636B2069662074686973206974656D20697320696E207468652069670D0A202020202020202020202020202020206966202869672E';
-wwv_flow_api.g_varchar2_table(18) := '636F6C756D6E2E6C656E677468203E203029207B0D0A202020202020202020202020202020202020202069672E636F6C756D6E4E616D65203D2069672E636F6C756D6E5B305D2E6E616D653B0D0A202020202020202020202020202020207D0D0A202020';
-wwv_flow_api.g_varchar2_table(19) := '2020202020202020207D293B0D0A0D0A2020202020202020202020202F2F74686973206576656E74206F6E6C79206669726573207768656E207374617274696E6720746F20656469742074686520696E746572616374697665206772696420726F770D0A';
-wwv_flow_api.g_varchar2_table(20) := '2020202020202020202020202F2F6974656D242E706172656E7428292E706172656E7428292E706172656E7428292E6F6E282761706578626567696E7265636F726465646974272C2066756E6374696F6E20286576656E742C206461746129207B0D0A20';
-wwv_flow_api.g_varchar2_table(21) := '202020202020202020202069672E67726964242E6F6E282761706578626567696E7265636F726465646974272C2066756E6374696F6E20286576656E742C206461746129207B0D0A202020202020202020202020202020202F2F636F6E736F6C652E6C6F';
-wwv_flow_api.g_varchar2_table(22) := '67282761706578626567696E7265636F72646564697427293B0D0A202020202020202020202020202020202F2F73617665207468652065646974696E67207265636F7264206461746120676C6F62616C6C7920696E2074686520706C7567696E0D0A2020';
-wwv_flow_api.g_varchar2_table(23) := '202020202020202020202020202069672E64617461203D20646174613B0D0A2020202020202020202020207D293B0D0A20202020202020207D0D0A0D0A20202020202020202F2F696E697469616C697A65207669657720616E6420766965776D6F64656C';
-wwv_flow_api.g_varchar2_table(24) := '0D0A202020202020202072657175697265285B276F6A732F6F6A636F7265272C20276B6E6F636B6F7574272C20276A7175657279272C20276F6A732F6F6A6B6E6F636B6F7574272C20276F6A732F6F6A73656C656374636F6D626F626F78275D2C0D0A20';
-wwv_flow_api.g_varchar2_table(25) := '202020202020202020202066756E6374696F6E20286F6A2C206B6F2C202429207B0D0A202020202020202020202020202020202F2F696E7374616E74696174652074686520766965774D6F64656C206F66207468697320766965770D0A20202020202020';
-wwv_flow_api.g_varchar2_table(26) := '202020202020202020766965774D6F64656C203D206E6577202866756E6374696F6E202829207B0D0A20202020202020202020202020202020202020207661722073656C66203D20746869733B0D0A202020202020202020202020202020202020202073';
-wwv_flow_api.g_varchar2_table(27) := '656C662E76616C7565203D206B6F2E6F627365727661626C65286F7074696F6E732E76616C7565293B0D0A202020202020202020202020202020202020202073656C662E6F7074696F6E73203D206B6F2E6F627365727661626C654172726179284A534F';
-wwv_flow_api.g_varchar2_table(28) := '4E2E7061727365286F7074696F6E732E6F7074696F6E7329293B0D0A202020202020202020202020202020202020202073656C662E636F6D706F6E656E74203D206B6F2E6F627365727661626C65286F7074696F6E732E636F6D706F6E656E74293B0D0A';
-wwv_flow_api.g_varchar2_table(29) := '202020202020202020202020202020202020202073656C662E706C616365686F6C646572203D206B6F2E6F627365727661626C65286F7074696F6E732E706C616365686F6C646572293B0D0A202020202020202020202020202020202020202073656C66';
-wwv_flow_api.g_varchar2_table(30) := '2E64697361626C6564203D206B6F2E6F627365727661626C652866616C7365293B0D0A0D0A202020202020202020202020202020202020202073656C662E646973706C617956616C7565466F72203D2066756E6374696F6E202876616C756529207B0D0A';
-wwv_flow_api.g_varchar2_table(31) := '2020202020202020202020202020202020202020202020206C6574206F626A656374203D2073656C662E6F7074696F6E7328292E66696C7465722861203D3E207B2072657475726E20612E76616C7565203D3D3D2076616C7565207D295B305D3B0D0A20';
-wwv_flow_api.g_varchar2_table(32) := '202020202020202020202020202020202020202020202072657475726E20747970656F66206F626A656374203D3D3D2027756E646566696E656427203F202727203A206F626A6563742E6C6162656C3B0D0A202020202020202020202020202020202020';
-wwv_flow_api.g_varchar2_table(33) := '20207D3B0D0A0D0A202020202020202020202020202020202020202073656C662E76616C75652E7375627363726962652866756E6374696F6E202876616C756529207B0D0A2020202020202020202020202020202020202020202020206966202869672E';
-wwv_flow_api.g_varchar2_table(34) := '6973477269642026262069672E6461746120213D3D206E756C6C29207B0D0A202020202020202020202020202020202020202020202020202020202F2F636F6E736F6C652E6C6F6728277765206E65656420746F2073657420746869732076616C75653A';
-wwv_flow_api.g_varchar2_table(35) := '2027202B2076616C75655B305D293B0D0A202020202020202020202020202020202020202020202020202020202F2F74686520706C7567696E206461746120686173206368616E6765642C207570646174652074686520696E7465726163746976652067';
-wwv_flow_api.g_varchar2_table(36) := '726964207265636F72640D0A20202020202020202020202020202020202020202020202020202020766172206D6F64656C203D2069672E646174612E6D6F64656C3B0D0A2020202020202020202020202020202020202020202020202020202076617220';
-wwv_flow_api.g_varchar2_table(37) := '726563203D2069672E646174612E7265636F72643B0D0A2020202020202020202020202020202020202020202020202020202076617220646973706C617956616C7565203D2073656C662E646973706C617956616C7565466F722876616C75655B305D29';
-wwv_flow_api.g_varchar2_table(38) := '3B0D0A20202020202020202020202020202020202020202020202020202020766172206E657756616C7565203D207B20763A2076616C75655B305D2C20643A20646973706C617956616C7565207D3B0D0A20202020202020202020202020202020202020';
-wwv_flow_api.g_varchar2_table(39) := '2020202020202020206D6F64656C2E73657456616C7565287265632C2069672E636F6C756D6E4E616D652C206E657756616C7565293B0D0A2020202020202020202020202020202020202020202020202020202069672E64617461203D206E756C6C3B0D';
-wwv_flow_api.g_varchar2_table(40) := '0A2020202020202020202020202020202020202020202020207D0D0A20202020202020202020202020202020202020207D293B0D0A202020202020202020202020202020207D2928293B202F2F6E657720766965774D6F64656C0D0A0D0A202020202020';
-wwv_flow_api.g_varchar2_table(41) := '202020202020202020202F2F696E7374616E74696174652074686520766965772062792065646974696E672074686520636F6E7461696E6572206D6164652062792074686520706C7567696E20504C2F53514C20636F64650D0A20202020202020202020';
-wwv_flow_api.g_varchar2_table(42) := '2020202020206966202869672E69734772696429207B0D0A20202020202020202020202020202020202020206974656D242E77726170496E6E657228273C73656C65637420646174612D62696E643D226F6A436F6D706F6E656E743A207B636F6D706F6E';
-wwv_flow_api.g_varchar2_table(43) := '656E743A636F6D706F6E656E742C27202B0D0A202020202020202020202020202020202020202020202020276F7074696F6E733A6F7074696F6E732C27202B0D0A2020202020202020202020202020202020202020202020202776616C75653A76616C75';
-wwv_flow_api.g_varchar2_table(44) := '652C27202B0D0A20202020202020202020202020202020202020202020202027706C616365686F6C6465723A706C616365686F6C6465722C27202B0D0A2020202020202020202020202020202020202020202020202764697361626C65643A6469736162';
-wwv_flow_api.g_varchar2_table(45) := '6C65642C27202B0D0A2020202020202020202020202020202020202020202020202F2F276F7074696F6E4368616E67653A66756E6374696F6E2028652C6429207B636F6E736F6C652E6C6F67285C276F7074696F6E4368616E67653A205C27293B20636F';
-wwv_flow_api.g_varchar2_table(46) := '6E736F6C652E6C6F672864293B7D2C27202B0D0A20202020202020202020202020202020202020202020202027726F6F74417474726962757465733A7B7374796C653A205C276D61782D77696474683A313030253B206865696768743A313030253B206D';
-wwv_flow_api.g_varchar2_table(47) := '617267696E3A3070785C277D7D223E27202B0D0A202020202020202020202020202020202020202020202020273C2F73656C6563743E27293B0D0A20202020202020202020202020202020202020206974656D242E63737328277769647468272C202731';
-wwv_flow_api.g_varchar2_table(48) := '30302527293B0D0A20202020202020202020202020202020202020206974656D242E706172656E7428292E6373732827686569676874272C20273130302527293B0D0A202020202020202020202020202020207D20656C7365207B0D0A20202020202020';
-wwv_flow_api.g_varchar2_table(49) := '202020202020202020202020206974656D242E77726170496E6E657228273C73656C65637420646174612D62696E643D226F6A436F6D706F6E656E743A207B636F6D706F6E656E743A636F6D706F6E656E742C27202B0D0A202020202020202020202020';
-wwv_flow_api.g_varchar2_table(50) := '202020202020202020202020276F7074696F6E733A6F7074696F6E732C27202B0D0A2020202020202020202020202020202020202020202020202776616C75653A76616C75652C27202B0D0A202020202020202020202020202020202020202020202020';
-wwv_flow_api.g_varchar2_table(51) := '27706C616365686F6C6465723A706C616365686F6C6465722C27202B0D0A2020202020202020202020202020202020202020202020202764697361626C65643A64697361626C65642C27202B0D0A20202020202020202020202020202020202020202020';
-wwv_flow_api.g_varchar2_table(52) := '202027726F6F74417474726962757465733A7B7374796C653A205C276D617267696E3A3070785C277D7D223E27202B0D0A202020202020202020202020202020202020202020202020273C2F73656C6563743E27293B0D0A202020202020202020202020';
-wwv_flow_api.g_varchar2_table(53) := '202020207D3B0D0A0D0A202020202020202020202020202020202F2F6163746976617465206B6E6F636B6F757420666F7220746865207669657720616E6420766965776D6F64656C20746F206265636F6D65206163746976650D0A202020202020202020';
-wwv_flow_api.g_varchar2_table(54) := '202020202020206B6F2E6170706C7942696E64696E677328766965774D6F64656C2C206974656D245B305D293B0D0A2020202020202020202020207D202F2F63616C6C6261636B0D0A2020202020202020293B202F2F726571756972650D0A0D0A202020';
-wwv_flow_api.g_varchar2_table(55) := '20202020202F2F637265617465207468652061706578206974656D206F757473696465207468652063616C6C6261636B2066756E6374696F6E0D0A20202020202020202F2F666F722074686520696E74657261637469766520677269643A207468657265';
-wwv_flow_api.g_varchar2_table(56) := '206973206F6E6C79206F6E6520706572206772696420636F6C756D6E0D0A20202020202020206974656D2E637265617465286974656D49642C207B0D0A20202020202020202020202073657456616C75653A2066756E6374696F6E202876616C75652920';
-wwv_flow_api.g_varchar2_table(57) := '7B0D0A202020202020202020202020202020202F2F636F6E736F6C652E6C6F67282773657456616C75653A2027202B2076616C7565293B0D0A202020202020202020202020202020202F2F7265736574207468652073656C656374656420646174612072';
-wwv_flow_api.g_varchar2_table(58) := '65636F72640D0A2020202020202020202020202020202069672E64617461203D206E756C6C3B0D0A0D0A202020202020202020202020202020202F2F73796E6368726F6E697365207468652076616C7565206F66207468652061706578206974656D2077';
-wwv_flow_api.g_varchar2_table(59) := '6974682074686520766965774D6F64656C0D0A20202020202020202020202020202020766965774D6F64656C2E76616C7565285B76616C75655D293B0D0A2020202020202020202020207D2C0D0A20202020202020202020202067657456616C75653A20';
-wwv_flow_api.g_varchar2_table(60) := '66756E6374696F6E202829207B0D0A202020202020202020202020202020202F2F636F6E736F6C652E6C6F67282767657456616C75653A2027202B20766965774D6F64656C2E76616C75652829293B0D0A202020202020202020202020202020202F2F72';
-wwv_flow_api.g_varchar2_table(61) := '657475726E207468652076616C7565206F6620746865206974656D2066726F6D2074686520766965774D6F64656C0D0A2020202020202020202020202020202072657475726E20766965774D6F64656C2E76616C756528295B305D3B0D0A202020202020';
-wwv_flow_api.g_varchar2_table(62) := '2020202020207D2C0D0A20202020202020202020202064697361626C653A2066756E6374696F6E20286529207B0D0A202020202020202020202020202020202F2F636F6E736F6C652E6C6F67282764697361626C6527293B0D0A20202020202020202020';
-wwv_flow_api.g_varchar2_table(63) := '2020202020202F2F64697361626C6520746865206974656D0D0A20202020202020202020202020202020766965774D6F64656C2E64697361626C65642874727565293B0D0A2020202020202020202020207D2C0D0A202020202020202020202020656E61';
-wwv_flow_api.g_varchar2_table(64) := '626C653A2066756E6374696F6E20286529207B0D0A202020202020202020202020202020202F2F636F6E736F6C652E6C6F672827656E61626C6527293B0D0A202020202020202020202020202020202F2F656E61626C6520746865206974656D0D0A2020';
-wwv_flow_api.g_varchar2_table(65) := '2020202020202020202020202020766965774D6F64656C2E64697361626C65642866616C7365293B0D0A2020202020202020202020207D2C0D0A202020202020202020202020646973706C617956616C7565466F723A2066756E6374696F6E202876616C';
-wwv_flow_api.g_varchar2_table(66) := '756529207B0D0A202020202020202020202020202020202F2F636F6E736F6C652E6C6F672827646973706C617956616C7565466F723A2027202B2076616C7565202B20272028766965774D6F64656C2076616C75653A2027202B20766965774D6F64656C';
-wwv_flow_api.g_varchar2_table(67) := '2E76616C75652829202B20272927293B0D0A202020202020202020202020202020202F2F736561726368207468652072657475726E2076616C756520696E2074686520766965774D6F64656C20616E642072657475726E2074686520646973706C617920';
-wwv_flow_api.g_varchar2_table(68) := '76616C75650D0A2020202020202020202020202020202072657475726E20766965774D6F64656C2E646973706C617956616C7565466F722876616C7565293B0D0A2020202020202020202020207D0D0A20202020202020207D293B202F2F6974656D2E63';
-wwv_flow_api.g_varchar2_table(69) := '72656174650D0A0D0A20202020202020202F2F696E697469616C697A652074686973206974656D0D0A202020202020202074656D704974656D2E6964203D206974656D49643B0D0A202020202020202074656D704974656D2E6F7074696F6E73203D206F';
-wwv_flow_api.g_varchar2_table(70) := '7074696F6E733B0D0A202020202020202074656D704974656D2E61706578203D206974656D286974656D24293B0D0A202020202020202074656D704974656D2E6E6F6465203D206974656D243B0D0A202020202020202074656D704974656D2E73657444';
-wwv_flow_api.g_varchar2_table(71) := '617461203D2066756E6374696F6E20286461746129207B2074656D704974656D2E617065782E73657456616C7565282727293B20766965774D6F64656C2E6F7074696F6E73286461746129207D3B0D0A202020202020202074656D704974656D2E676574';
-wwv_flow_api.g_varchar2_table(72) := '44617461203D2066756E6374696F6E202829207B2072657475726E20766965774D6F64656C2E6F7074696F6E7328293B207D3B0D0A20202020202020206974656D732E707573682874656D704974656D293B0D0A202020202020202074656D704974656D';
-wwv_flow_api.g_varchar2_table(73) := '203D207B7D3B0D0A202020207D3B202F2F5F6372656174650D0A0D0A2020202072657475726E207B0D0A20202020202020206372656174653A205F6372656174650D0A20202020202020202C206974656D733A206974656D730D0A20202020202020202C';
-wwv_flow_api.g_varchar2_table(74) := '20696E666F3A2066756E6374696F6E202829207B2072657475726E20276F6A53656C656374436F6D626F626F7820706C7567696E20666F72204F4A45542076322E302E3227207D0D0A20202020202020202C2076657273696F6E3A2066756E6374696F6E';
-wwv_flow_api.g_varchar2_table(75) := '202829207B2072657475726E2027312E3027207D0D0A202020207D3B0D0A7D2928617065782E64656275672C20617065782E7574696C2C20617065782E7365727665722C20617065782E6974656D293B0D0A';
+wwv_flow_api.g_varchar2_table(1) := '2F2A206F6A2D73656C656374202A2F0A0A2E617065782D6974656D2D6F6A73656C656374202E6F6A2D73656C656374207B0A2020706F736974696F6E3A2072656C61746976653B0A2020646973706C61793A20696E6C696E652D626C6F636B3B0A20206D';
+wwv_flow_api.g_varchar2_table(2) := '61782D77696474683A20313030253B0A20206D696E2D77696474683A2038656D3B0A202077696474683A20313030253B0A2020666F6E742D73697A653A203172656D3B0A20202D6D6F7A2D626F782D73697A696E673A20626F726465722D626F783B0A20';
+wwv_flow_api.g_varchar2_table(3) := '20626F782D73697A696E673A20626F726465722D626F783B0A7D0A0A2E617065782D6974656D2D6F6A73656C656374202E6F6A2D73656C656374202E6F6A2D73656C6563742D63686F696365207B0A2020746578742D616C69676E3A206C6566743B0A20';
+wwv_flow_api.g_varchar2_table(4) := '20636F6C6F723A20233333333B0A2F2A20206261636B67726F756E642D636F6C6F723A20236663666466653B2A2F0A20206261636B67726F756E642D636F6C6F723A236632663266323B0A2020626F726465722D7374796C653A20736F6C69643B0A2020';
+wwv_flow_api.g_varchar2_table(5) := '626F726465722D636F6C6F723A20236439643964393B0A2020626F726465722D77696474683A203170783B0A2020626F726465722D7261646975733A203270783B0A20202D7765626B69742D617070656172616E63653A206E6F6E653B0A20202D776562';
+wwv_flow_api.g_varchar2_table(6) := '6B69742D7461702D686967686C696768742D636F6C6F723A207472616E73706172656E743B0A20202D6D6F7A2D626F782D73697A696E673A20626F726465722D626F783B0A2020626F782D73697A696E673A20626F726465722D626F783B0A2020646973';
+wwv_flow_api.g_varchar2_table(7) := '706C61793A20626C6F636B3B0A20206F766572666C6F773A2068696464656E3B0A2020706F736974696F6E3A2072656C61746976653B0A202077686974652D73706163653A206E6F777261703B0A20206261636B67726F756E642D636C69703A20706164';
+wwv_flow_api.g_varchar2_table(8) := '64696E672D626F783B0A2020746578742D6F766572666C6F773A20656C6C69707369733B0A20206865696768743A20322E32383672656D3B0A20206C696E652D6865696768743A20322E32383672656D3B0A7D0A0A2E617065782D6974656D2D6F6A7365';
+wwv_flow_api.g_varchar2_table(9) := '6C656374202E6F6A2D73656C656374202E6F6A2D73656C6563742D63686F696365202E6F6A2D73656C6563742D63686F73656E207B0A2020626F726465723A20303B0A20206F75746C696E653A20303B0A202077686974652D73706163653A206E6F7772';
+wwv_flow_api.g_varchar2_table(10) := '61703B0A2020646973706C61793A20696E6C696E652D626C6F636B3B0A20206F766572666C6F773A2068696464656E3B0A2020746578742D6F766572666C6F773A20656C6C69707369733B0A202077696474683A20313030253B0A2020626F782D736861';
+wwv_flow_api.g_varchar2_table(11) := '646F773A206E6F6E653B0A20202D6D6F7A2D626F782D73697A696E673A20626F726465722D626F783B0A2020626F782D73697A696E673A20626F726465722D626F783B0A2020666F6E742D73697A653A20312E3272656D3B0A7D0A0A0A2F2A206F6A2D63';
+wwv_flow_api.g_varchar2_table(12) := '6F6D626F626F78202A2F0A2E617065782D6974656D2D6F6A73656C656374202E6F6A2D636F6D626F626F78207B0A2020706F736974696F6E3A2072656C61746976653B0A2020646973706C61793A20696E6C696E652D626C6F636B3B0A20207665727469';
+wwv_flow_api.g_varchar2_table(13) := '63616C2D616C69676E3A206D6964646C653B0A20206D61782D77696474683A20313030253B0A20206D696E2D77696474683A2038656D3B0A202077696474683A20313030253B0A2020666F6E742D73697A653A203172656D3B0A7D0A0A2E617065782D69';
+wwv_flow_api.g_varchar2_table(14) := '74656D2D6F6A73656C656374202E6F6A2D636F6D626F626F78202E6F6A2D636F6D626F626F782D63686F696365207B0A2020746578742D616C69676E3A206C6566743B0A2020636F6C6F723A20233333333B0A2F2A20206261636B67726F756E642D636F';
+wwv_flow_api.g_varchar2_table(15) := '6C6F723A20236663666466653B2A2F0A20206261636B67726F756E642D636F6C6F723A236632663266323B0A2020626F726465722D7374796C653A20736F6C69643B0A2020626F726465722D636F6C6F723A20236439643964393B0A2020626F72646572';
+wwv_flow_api.g_varchar2_table(16) := '2D77696474683A203170783B0A2020626F726465722D7261646975733A203270783B0A20202D7765626B69742D617070656172616E63653A206E6F6E653B0A20202D7765626B69742D7461702D686967686C696768742D636F6C6F723A207472616E7370';
+wwv_flow_api.g_varchar2_table(17) := '6172656E743B0A20202D6D6F7A2D626F782D73697A696E673A20626F726465722D626F783B0A2020626F782D73697A696E673A20626F726465722D626F783B0A20206865696768743A20322E32383672656D3B0A20206C696E652D6865696768743A2032';
+wwv_flow_api.g_varchar2_table(18) := '2E32383672656D3B0A2020646973706C61793A20626C6F636B3B0A20206F75746C696E653A20303B0A20206F766572666C6F773A2068696464656E3B0A2020706F736974696F6E3A2072656C61746976653B0A202077686974652D73706163653A206E6F';
+wwv_flow_api.g_varchar2_table(19) := '777261703B0A20206261636B67726F756E642D636C69703A2070616464696E672D626F783B0A7D0A0A2E617065782D6974656D2D6F6A73656C656374202E6F6A2D636F6D626F626F78202E6F6A2D636F6D626F626F782D63686F696365202E6F6A2D636F';
+wwv_flow_api.g_varchar2_table(20) := '6D626F626F782D696E707574207B0A202077696474683A20313030253B0A2020626F726465723A20303B0A202070616464696E673A20303B0A2020626F782D736861646F773A206E6F6E653B0A20206F75746C696E653A20303B0A2F2A20206261636B67';
+wwv_flow_api.g_varchar2_table(21) := '726F756E642D636F6C6F723A20236663666466653B2A2F0A6261636B67726F756E642D636F6C6F723A236632663266323B0A636F6C6F723A20233333333B0A2020646973706C61793A20696E6C696E652D626C6F636B3B0A20206F766572666C6F773A20';
+wwv_flow_api.g_varchar2_table(22) := '68696464656E3B0A202077686974652D73706163653A206E6F777261703B0A2020746578742D6F766572666C6F773A20656C6C69707369733B0A2020666F6E742D73697A653A20312E3272656D3B0A7D0A0A2E617065782D6974656D2D6F6A73656C6563';
+wwv_flow_api.g_varchar2_table(23) := '74202E6F6A2D636F6D626F626F78202E6F6A2D636F6D626F626F782D63686F696365202E6F6A2D636F6D626F626F782D636C6561722D656E747279207B0A2020646973706C61793A20696E6C696E652D626C6F636B3B0A20206F75746C696E653A206E6F';
+wwv_flow_api.g_varchar2_table(24) := '6E653B0A2020746578742D616C69676E3A2063656E7465723B0A2020766572746963616C2D616C69676E3A206D6964646C653B0A20206C696E652D6865696768743A20313030253B0A7D0A0A2F2A206F6A2D73656C656374202A2F0A2E612D4947202E61';
+wwv_flow_api.g_varchar2_table(25) := '7065782D6974656D2D6F6A73656C656374202E6F6A2D73656C656374207B0A2020686569676874203A20313030253B0A20206D617267696E2D626F74746F6D3A3070783B0A7D0A0A2020202E612D4947202E617065782D6974656D2D6F6A73656C656374';
+wwv_flow_api.g_varchar2_table(26) := '202E6F6A2D73656C656374202E6F6A2D73656C6563742D63686F696365207B0A202020206865696768743A20313030253B0A20202020646973706C61793A207461626C653B0A2020202077696474683A20313030253B0A20207D0A0A20202E612D494720';
+wwv_flow_api.g_varchar2_table(27) := '2E617065782D6974656D2D6F6A73656C656374202E6F6A2D73656C656374202E6F6A2D73656C6563742D63686F696365202E6F6A2D73656C6563742D63686F73656E207B0A202020206865696768743A20313030253B0A20202020766572746963616C2D';
+wwv_flow_api.g_varchar2_table(28) := '616C69676E3A206D6964646C653B0A20202020646973706C61793A207461626C652D63656C6C3B0A20202020746578742D616C69676E3A206C6566743B0A2020202070616464696E672D6C6566743A203870783B0A20207D0A0A20202E612D4947202E61';
+wwv_flow_api.g_varchar2_table(29) := '7065782D6974656D2D6F6A73656C656374202E6F6A2D73656C656374202E6F6A2D73656C6563742D63686F696365202E6F6A2D73656C6563742D6172726F77207B0A202020206C696E652D6865696768743A2032656D3B0A20207D0A0A2F2A206F6A2D63';
+wwv_flow_api.g_varchar2_table(30) := '6F6D626F626F78202A2F0A20202E612D4947202E617065782D6974656D2D6F6A73656C656374202E6F6A2D636F6D626F626F78207B0A20202020686569676874203A20313030253B0A202020206D617267696E2D626F74746F6D3A3070783B0A20207D0A';
+wwv_flow_api.g_varchar2_table(31) := '20200A20202E612D4947202E617065782D6974656D2D6F6A73656C656374202E6F6A2D636F6D626F626F78202E6F6A2D636F6D626F626F782D63686F696365207B0A202020206865696768743A20313030253B0A20202020646973706C61793A20746162';
+wwv_flow_api.g_varchar2_table(32) := '6C653B0A2020202077696474683A20313030253B0A20207D0A20200A20202E612D4947202E617065782D6974656D2D6F6A73656C656374202E6F6A2D636F6D626F626F78202E6F6A2D636F6D626F626F782D63686F696365202E6F6A2D636F6D626F626F';
+wwv_flow_api.g_varchar2_table(33) := '782D696E707574207B0A2020202020206865696768743A20313030253B0A20202020766572746963616C2D616C69676E3A206D6964646C653B0A20202020646973706C61793A207461626C652D63656C6C3B0A20202020746578742D616C69676E3A206C';
+wwv_flow_api.g_varchar2_table(34) := '6566743B0A20207D0A0A20202E612D4947202E617065782D6974656D2D6F6A73656C656374202E6F6A2D636F6D626F626F78202E6F6A2D636F6D626F626F782D63686F696365202E6F6A2D636F6D626F626F782D636C6561722D656E747279207B0A2020';
+wwv_flow_api.g_varchar2_table(35) := '202020646973706C61793A207461626C652D63656C6C3B0A20207D0A0A20202E612D4947202E617065782D6974656D2D6F6A73656C656374202E6F6A2D636F6D626F626F78202E6F6A2D636F6D626F626F782D63686F696365202E6F6A2D636F6D626F62';
+wwv_flow_api.g_varchar2_table(36) := '6F782D6172726F77207B0A202020206C696E652D6865696768743A2032656D3B0A207D0A20200A202E617065782D6974656D2D6F6A73656C6563743A666F6375732C202E6F6A2D73656C6563743A666F6375732C202E6F6A2D73656C6563742D63686F69';
+wwv_flow_api.g_varchar2_table(37) := '63653A666F6375732C202E6F6A2D636F6D626F626F783A666F6375732C202E6F6A2D636F6D626F626F782D63686F6963653A666F6375732C202E6F6A2D636F6D626F626F782D696E7075743A666F6375732C0A202E617065782D6974656D2D6F6A73656C';
+wwv_flow_api.g_varchar2_table(38) := '6563743A666F6375732D77697468696E2C202E6F6A2D73656C6563743A666F6375732D77697468696E2C202E6F6A2D73656C6563742D63686F6963653A666F6375732D77697468696E2C202E6F6A2D636F6D626F626F783A666F6375732D77697468696E';
+wwv_flow_api.g_varchar2_table(39) := '2C202E6F6A2D636F6D626F626F782D63686F6963653A666F6375732D77697468696E2C202E6F6A2D636F6D626F626F782D696E7075743A666F6375732D77697468696E207B0A20206F75746C696E653A20303B0A7D0A0A2F2A2069662073656C65637465';
+wwv_flow_api.g_varchar2_table(40) := '64206368616E676520746F206170657820626F72646572207374796C65202A2F0A2E617065782D6974656D2D6F6A73656C6563743A666F6375732C202E6F6A2D73656C6563743A666F6375732C202E6F6A2D73656C6563742D63686F6963653A666F6375';
+wwv_flow_api.g_varchar2_table(41) := '732C202E6F6A2D636F6D626F626F783A666F6375732C202E6F6A2D636F6D626F626F782D63686F6963653A666F6375732C202E6F6A2D636F6D626F626F782D696E7075743A666F6375732C0A202E617065782D6974656D2D6F6A73656C6563743A666F63';
+wwv_flow_api.g_varchar2_table(42) := '75732D77697468696E2C202E6F6A2D73656C6563743A666F6375732D77697468696E2C202E6F6A2D73656C6563742D63686F6963653A666F6375732D77697468696E2C202E6F6A2D636F6D626F626F783A666F6375732D77697468696E2C202E6F6A2D63';
+wwv_flow_api.g_varchar2_table(43) := '6F6D626F626F782D63686F6963653A666F6375732D77697468696E2C202E6F6A2D636F6D626F626F782D696E7075743A666F6375732D77697468696E207B0A202020206261636B67726F756E642D636F6C6F723A202366666621696D706F7274616E743B';
+wwv_flow_api.g_varchar2_table(44) := '0A2020626F726465722D636F6C6F723A202332353738636621696D706F7274616E743B0A7D0A0A2E617065782D6974656D2D6F6A73656C6563743A686F7665722C202E6F6A2D73656C6563743A686F7665722C202E6F6A2D73656C6563742D63686F6963';
+wwv_flow_api.g_varchar2_table(45) := '653A686F7665722C202E6F6A2D6C697374626F782D64726F703A686F7665722C202E6F6A2D636F6D626F626F783A686F7665722C202E6F6A2D636F6D626F626F782D63686F6963653A686F7665722C202E6F6A2D636F6D626F626F782D696E7075743A68';
+wwv_flow_api.g_varchar2_table(46) := '6F766572207B0A20206261636B67726F756E642D636F6C6F723A202366666621696D706F7274616E743B0A7D0A0A2F2A2073657474696E677320666F722073747265746368206974656D73202A2F0A2E742D466F726D2D2D73747265746368496E707574';
+wwv_flow_api.g_varchar2_table(47) := '73202E742D466F726D2D6669656C64436F6E7461696E6572202E617065782D6974656D2D6F6A73656C6563742C202E742D466F726D2D6669656C64436F6E7461696E65722D2D73747265746368496E70757473202E617065782D6974656D2D6F6A73656C';
+wwv_flow_api.g_varchar2_table(48) := '656374207B0A2020666C65783A20313B0A20206D696E2D77696474683A20303B0A7D0A0A2F2A206368616E6765207468652064726F70646F776E2069636F6E202A2F0A2E617065782D6974656D2D6F6A73656C656374202E6F6A2D636F6D626F626F782D';
+wwv_flow_api.g_varchar2_table(49) := '6F70656E2D69636F6E3A6265666F72652C202E617065782D6974656D2D6F6A73656C656374202E6F6A2D73656C6563742D6F70656E2D69636F6E3A6265666F7265207B0A2020636F6E74656E743A20225C65363036223B0A20207472616E73666F726D3A';
+wwv_flow_api.g_varchar2_table(50) := '20726F74617465283930646567293B0A7D20';
 null;
 end;
 /
 begin
 wwv_flow_api.create_plugin_file(
- p_id=>wwv_flow_api.id(3138663343598564)
-,p_plugin_id=>wwv_flow_api.id(3135065635554079)
-,p_file_name=>'ojselectcombobox.js'
-,p_mime_type=>'application/javascript'
+ p_id=>wwv_flow_api.id(4211310914181578)
+,p_plugin_id=>wwv_flow_api.id(6671596310259991)
+,p_file_name=>'ojselectcombobox.css'
+,p_mime_type=>'text/css'
 ,p_file_charset=>'utf-8'
 ,p_file_content=>wwv_flow_api.varchar2_to_blob(wwv_flow_api.g_varchar2_table)
 );

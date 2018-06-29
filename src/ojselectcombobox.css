@@ -1,5 +1,187 @@
-/* the oj-select-choice element is created via knockout 
-   so the css can only be set afterwards */
-.a-IG .apex-item-ojselect .oj-select .oj-select-choice {
-  height : 100%;
+/* oj-select */
+
+.apex-item-ojselect .oj-select {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  min-width: 8em;
+  width: 100%;
+  font-size: 1rem;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
 }
+
+.apex-item-ojselect .oj-select .oj-select-choice {
+  text-align: left;
+  color: #333;
+/*  background-color: #fcfdfe;*/
+  background-color:#f2f2f2;
+  border-style: solid;
+  border-color: #d9d9d9;
+  border-width: 1px;
+  border-radius: 2px;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  display: block;
+  overflow: hidden;
+  position: relative;
+  white-space: nowrap;
+  background-clip: padding-box;
+  text-overflow: ellipsis;
+  height: 2.286rem;
+  line-height: 2.286rem;
+}
+
+.apex-item-ojselect .oj-select .oj-select-choice .oj-select-chosen {
+  border: 0;
+  outline: 0;
+  white-space: nowrap;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  box-shadow: none;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  font-size: 1.2rem;
+}
+
+
+/* oj-combobox */
+.apex-item-ojselect .oj-combobox {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+  min-width: 8em;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.apex-item-ojselect .oj-combobox .oj-combobox-choice {
+  text-align: left;
+  color: #333;
+/*  background-color: #fcfdfe;*/
+  background-color:#f2f2f2;
+  border-style: solid;
+  border-color: #d9d9d9;
+  border-width: 1px;
+  border-radius: 2px;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  height: 2.286rem;
+  line-height: 2.286rem;
+  display: block;
+  outline: 0;
+  overflow: hidden;
+  position: relative;
+  white-space: nowrap;
+  background-clip: padding-box;
+}
+
+.apex-item-ojselect .oj-combobox .oj-combobox-choice .oj-combobox-input {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+  outline: 0;
+/*  background-color: #fcfdfe;*/
+background-color:#f2f2f2;
+color: #333;
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 1.2rem;
+}
+
+.apex-item-ojselect .oj-combobox .oj-combobox-choice .oj-combobox-clear-entry {
+  display: inline-block;
+  outline: none;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 100%;
+}
+
+/* oj-select */
+.a-IG .apex-item-ojselect .oj-select {
+  height : 100%;
+  margin-bottom:0px;
+}
+
+   .a-IG .apex-item-ojselect .oj-select .oj-select-choice {
+    height: 100%;
+    display: table;
+    width: 100%;
+  }
+
+  .a-IG .apex-item-ojselect .oj-select .oj-select-choice .oj-select-chosen {
+    height: 100%;
+    vertical-align: middle;
+    display: table-cell;
+    text-align: left;
+    padding-left: 8px;
+  }
+
+  .a-IG .apex-item-ojselect .oj-select .oj-select-choice .oj-select-arrow {
+    line-height: 2em;
+  }
+
+/* oj-combobox */
+  .a-IG .apex-item-ojselect .oj-combobox {
+    height : 100%;
+    margin-bottom:0px;
+  }
+  
+  .a-IG .apex-item-ojselect .oj-combobox .oj-combobox-choice {
+    height: 100%;
+    display: table;
+    width: 100%;
+  }
+  
+  .a-IG .apex-item-ojselect .oj-combobox .oj-combobox-choice .oj-combobox-input {
+      height: 100%;
+    vertical-align: middle;
+    display: table-cell;
+    text-align: left;
+  }
+
+  .a-IG .apex-item-ojselect .oj-combobox .oj-combobox-choice .oj-combobox-clear-entry {
+     display: table-cell;
+  }
+
+  .a-IG .apex-item-ojselect .oj-combobox .oj-combobox-choice .oj-combobox-arrow {
+    line-height: 2em;
+ }
+  
+ .apex-item-ojselect:focus, .oj-select:focus, .oj-select-choice:focus, .oj-combobox:focus, .oj-combobox-choice:focus, .oj-combobox-input:focus,
+ .apex-item-ojselect:focus-within, .oj-select:focus-within, .oj-select-choice:focus-within, .oj-combobox:focus-within, .oj-combobox-choice:focus-within, .oj-combobox-input:focus-within {
+  outline: 0;
+}
+
+/* if selected change to apex border style */
+.apex-item-ojselect:focus, .oj-select:focus, .oj-select-choice:focus, .oj-combobox:focus, .oj-combobox-choice:focus, .oj-combobox-input:focus,
+ .apex-item-ojselect:focus-within, .oj-select:focus-within, .oj-select-choice:focus-within, .oj-combobox:focus-within, .oj-combobox-choice:focus-within, .oj-combobox-input:focus-within {
+    background-color: #fff!important;
+  border-color: #2578cf!important;
+}
+
+.apex-item-ojselect:hover, .oj-select:hover, .oj-select-choice:hover, .oj-listbox-drop:hover, .oj-combobox:hover, .oj-combobox-choice:hover, .oj-combobox-input:hover {
+  background-color: #fff!important;
+}
+
+/* settings for stretch items */
+.t-Form--stretchInputs .t-Form-fieldContainer .apex-item-ojselect, .t-Form-fieldContainer--stretchInputs .apex-item-ojselect {
+  flex: 1;
+  min-width: 0;
+}
+
+/* change the dropdown icon */
+.apex-item-ojselect .oj-combobox-open-icon:before, .apex-item-ojselect .oj-select-open-icon:before {
+  content: "\e606";
+  transform: rotate(90deg);
+} 

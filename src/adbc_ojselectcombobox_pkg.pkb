@@ -1,5 +1,9 @@
 create or replace package body adbc_ojselectcombobox_pkg is
 
+  g_display_column constant pls_integer := 1;
+  g_return_column  constant pls_integer := 2;
+  g_group_column   constant pls_integer := 3;
+
   procedure render(p_item   in apex_plugin.t_item,
                    p_plugin in apex_plugin.t_plugin,
                    p_param  in apex_plugin.t_item_render_param,
@@ -9,10 +13,6 @@ create or replace package body adbc_ojselectcombobox_pkg is
     l_name          varchar2(30);
     l_display_value varchar2(32767);
   
-    c_display_column constant pls_integer := 1;
-    c_return_column  constant pls_integer := 2;
-    c_group_column   constant pls_integer := 3;
-
     -- value without the lov null value
     l_value varchar2(32767) := case
                                  when p_param.value = p_item.lov_null_value then
@@ -20,12 +20,6 @@ create or replace package body adbc_ojselectcombobox_pkg is
                                  else
                                   p_param.value
                                end;
-    l_options           clob;
-    l_column_value_list wwv_flow_plugin_util.t_column_value_list;
-    l_value_found       boolean := false;
-    l_group_value       varchar2(4000);
-    l_last_group_value  varchar2(4000);
-    l_open_group        boolean := false;
   
     c_escaped_value constant varchar2(32767) := apex_escape.html_attribute(p_param.value);
   begin
@@ -48,8 +42,8 @@ create or replace package body adbc_ojselectcombobox_pkg is
                                                            p_min_columns       => 2,
                                                            p_max_columns       => 3,
                                                            p_component_name    => p_item.name,
-                                                           p_display_column_no => c_display_column,
-                                                           p_search_column_no  => c_return_column,
+                                                           p_display_column_no => g_display_column,
+                                                           p_search_column_no  => g_return_column,
                                                            p_search_string     => l_value,
                                                            p_display_extra     => p_item.lov_display_extra);
     
@@ -61,105 +55,50 @@ create or replace package body adbc_ojselectcombobox_pkg is
                                           p_attributes       => p_item.element_attributes);
     else
       l_name := apex_plugin.get_input_name_for_item;
-    
-      -- create list
-      apex_json.initialize_clob_output;
-      apex_json.open_array;
-    
-      -- add extra list entry with null value to the list 
-      if p_item.lov_display_null then
-        -- add list entry      
-        apex_json.open_object;
-        apex_json.write('value', '');
-        apex_json.write('label', '');
-        apex_json.close_object;
-      end if;
-    
-      -- get all values
-      l_column_value_list := apex_plugin_util.get_data(p_sql_statement  => p_item.lov_definition,
-                                                       p_min_columns    => 2,
-                                                       p_max_columns    => 3,
-                                                       p_component_name => p_item.name);
-    
-      -- loop through the result
-      for i in 1 .. l_column_value_list(c_display_column).count loop
-        -- if the current item value is in the list then the value is found
-        l_value_found := (l_value = l_column_value_list(c_return_column)
-                          (i) or l_value_found);
       
-        -- if there is a group specified, handle the group list entry
-        begin
-          l_group_value := l_column_value_list(c_group_column)(i);
-          if (l_group_value <> l_last_group_value) or
-             (l_group_value is     null and l_last_group_value is not null) or
-             (l_group_value is not null and l_last_group_value is     null)
-          then
-            -- close the group list entry
-            if l_open_group then
-              apex_json.close_array();
-              apex_json.close_object();
-              l_open_group := false;
-            end if;
-
-            -- add a group list entry
-            if l_group_value is not null then
-              l_open_group := true;
-              apex_json.open_object;
-              apex_json.write('label', l_group_value);
-             apex_json.open_array('children');
-            end if;
-
-            l_last_group_value := l_group_value;
-          end if;
-        exception
-          when no_data_found then 
-            null;
-        end;
-  
-        -- add list entry
-        apex_json.open_object;
-        apex_json.write('value', l_column_value_list(c_return_column) (i));
-        apex_json.write('label', l_column_value_list(c_display_column) (i));
-        apex_json.close_object;
-      end loop;
-
-      -- close the group list entry when still open
-      if l_open_group then
-        apex_json.close_array();
-        apex_json.close_object();
-        l_open_group := false;
-          
-        -- we have to tell the APEX JS framework which value should be considered as NULL
-        if p_item.lov_null_value is not null then
-          apex_javascript.add_onload_code (p_code => 'apex.widget.initPageItem(' || apex_javascript.add_value(p_item.name) ||
-                                                     '{ ' || apex_javascript.add_attribute('nullValue', p_item.lov_null_value, true, false) || '});' );
-        end if;
-      end if;
-  
-      -- show at least the value if it hasn't been found in the database
-      if (not l_value_found and l_value is not null and
-         p_item.lov_display_extra) then
-        -- add list entry
-        apex_json.open_object;
-        apex_json.write('value', l_value);
-        apex_json.write('label', l_value);
-        apex_json.close_object;
-      end if;
+      
+   --   htp.p('<input type="hidden" id="' || p_item.name || '_HIDDEN" />');
+      
+      -- render the item for 
+      sys.htp.prn('<input type="text" ' ||
+                  apex_plugin_util.get_element_attributes(p_item           => p_item,
+                                                          p_name           => l_name,
+                                                          p_default_class  => 'apex-item-plugin u-hidden',
+                                                          p_add_id         => false,
+                                                          p_add_labelledby => true) ||
+                  'id="' || p_item.name || '" ' || case when
+                  p_item.is_required then 'required' else ''
+                  end || '></input>');
     
-      apex_json.close_array;
-      l_options := apex_json.get_clob_output;
+      /* <input type="text" id="noiteminput" name="noiteminput" required class="u-hidden"/>*/
+      
+      -- render the container div 
+      sys.htp.prn('<div ' || 'id="' || p_item.name || '_OJETCONTAINER" ' || 'class="apex-item-ojselect"' ||
+                  'style="width:' || case when
+                  p_item.element_width is not null then
+                  p_item.element_width else 17 end || 'ch;">' || '</div>');
     
       -- render the container div 
-      sys.htp.prn('<div' ||
-                  wwv_flow_plugin_util.get_element_attributes(p_item,
-                                                              l_name,
-                                                              'apex-item-ojselect apex-item-plugin',
-                                                              false) ||
-                  'id="' || p_item.name || '" ' || '>' || '</div>');
+      /*       sys.htp.prn('<div ' ||
+      wwv_flow_plugin_util.get_element_attributes(p_item,
+                                                  l_name,
+                                                  'apex-item-ojselect apex-item-plugin',
+                                                  false) ||
+      'id="' || p_item.name || '" ' || 'style="width:' || case when
+      p_item.element_width is not null then
+      p_item.element_width else 17 end || 'ch;">' || '</div>');*/
     
       -- create the item
       apex_javascript.add_onload_code(p_code => 'widget.ojet.ojselectcombobox.create("' ||
                                                 p_item.name || '", {' ||
+                                                apex_javascript.add_attribute('ajaxIdentifier',
+                                                                              apex_plugin.get_ajax_identifier,
+                                                                              true,
+                                                                              true) ||
+                                                apex_javascript.add_attribute('nullValue',
+                                                                              p_item.lov_null_value,
+                                                                              true,
+                                                                              true) ||
                                                 apex_javascript.add_attribute('value',
                                                                               case
                                                                                 when p_param.value is null then
@@ -169,10 +108,6 @@ create or replace package body adbc_ojselectcombobox_pkg is
                                                                               end,
                                                                               true,
                                                                               true) ||
-                                                apex_javascript.add_attribute('options',
-                                                                              l_options,
-                                                                              true,
-                                                                              true) ||
                                                 apex_javascript.add_attribute('component',
                                                                               l_type,
                                                                               true,
@@ -180,12 +115,9 @@ create or replace package body adbc_ojselectcombobox_pkg is
                                                 apex_javascript.add_attribute('placeholder',
                                                                               l_placeholder,
                                                                               true,
-                                                                              true) ||
-                                                apex_javascript.add_attribute('nullValue',
-                                                                              p_item.lov_null_value,
-                                                                              true,
                                                                               false) ||
                                                 '});');
+    
     end if;
   
     p_result.is_navigable := (not p_param.is_readonly = false and
@@ -201,6 +133,119 @@ create or replace package body adbc_ojselectcombobox_pkg is
   begin
     p_result.escape_output := false;
   end metadata;
+
+  --==
+
+  procedure validation(p_item   in apex_plugin.t_item,
+                       p_plugin in apex_plugin.t_plugin,
+                       p_param  in apex_plugin.t_item_validation_param,
+                       p_result in out nocopy apex_plugin.t_item_validation_result) is
+  begin
+    logger.log('daar gaan we dan weer ');
+    -- if p_item.is_required and p_param.value is null then
+   -- p_result.message := '#LABEL# mag niet leeg zijn hoor.';
+    -- end if;
+  end validation;
+
+  --==
+
+  procedure ajax(p_item   in apex_plugin.t_item,
+                 p_plugin in apex_plugin.t_plugin,
+                 p_param  in apex_plugin.t_item_ajax_param,
+                 p_result in out nocopy apex_plugin.t_item_ajax_result) is
+  
+    -- value without the lov null value
+    l_value varchar2(32767) := case
+                                 when apex_application.g_x01 =
+                                      p_item.lov_null_value then
+                                  null
+                                 else
+                                  apex_application.g_x01
+                               end;
+  
+    l_column_value_list wwv_flow_plugin_util.t_column_value_list;
+    l_value_found       boolean := false;
+    l_group_value       varchar2(4000);
+    l_last_group_value  varchar2(4000);
+    l_open_group        boolean := false;
+  begin
+    --  logger.log('ajax ajax ');
+  
+    -- create list
+    apex_json.open_array;
+  
+    -- get all values
+    l_column_value_list := apex_plugin_util.get_data(p_sql_statement  => p_item.lov_definition,
+                                                     p_min_columns    => 2,
+                                                     p_max_columns    => 3,
+                                                     p_component_name => p_item.name);
+  
+    -- loop through the result
+    for i in 1 .. l_column_value_list(g_display_column).count loop
+      -- if the current item value is in the list then the value is found
+      l_value_found := (l_value = l_column_value_list(g_return_column)
+                        (i) or l_value_found);
+    
+      -- if there is a group specified, handle the group list entry
+      begin
+        l_group_value := l_column_value_list(g_group_column) (i);
+        if (l_group_value <> l_last_group_value) or
+           (l_group_value is null and l_last_group_value is not null) or
+           (l_group_value is not null and l_last_group_value is null) then
+        
+          -- close the group list entry
+          if l_open_group then
+            apex_json.close_array();
+            apex_json.close_object();
+            l_open_group := false;
+          end if;
+        
+          -- add a group list entry
+          --if l_group_value is not null then
+          l_open_group := true;
+          apex_json.open_object;
+          apex_json.write('label', l_group_value, true);
+          apex_json.open_array('children');
+          --end if;
+        
+          l_last_group_value := l_group_value;
+        end if;
+      exception
+        when no_data_found then
+          null;
+      end;
+    
+      -- add list entry
+      apex_json.open_object;
+      apex_json.write('value',
+                      l_column_value_list(g_return_column) (i),
+                      true);
+      apex_json.write('label',
+                      l_column_value_list(g_display_column) (i),
+                      true);
+      apex_json.close_object;
+    end loop;
+  
+    -- close the group list entry when still open
+    if l_open_group then
+      apex_json.close_array();
+      apex_json.close_object();
+      l_open_group := false;
+    end if;
+  
+    -- show at least the value if it hasn't been found in the database
+    if (not l_value_found and l_value is not null and
+       p_item.lov_display_extra) then
+      -- add list entry
+      apex_json.open_object;
+      apex_json.write('value', l_value, true);
+      apex_json.write('label', l_value, true);
+      apex_json.close_object;
+    end if;
+  
+    apex_json.close_array;
+  
+  end ajax;
 
 begin
   -- Initialization

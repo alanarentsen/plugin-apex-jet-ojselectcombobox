@@ -1,4 +1,11 @@
 /* oj-select */
+.a-GV-columnItem {
+  height: 100%;  
+}
+
+.apex-item-ojselect {
+  width: 100%!important
+}
 
 .apex-item-ojselect .oj-select {
   position: relative;
@@ -185,3 +192,8 @@ color: #333;
   content: "\e606";
   transform: rotate(90deg);
 } 
+
+/* when scrolling the listbox should go under the page header */
+.oj-listbox-drop-layer {
+  z-index: 800;
+}

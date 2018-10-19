@@ -6,6 +6,7 @@ JET version: 2.0.2
 Settings:
   Component Type: ojSelect or ojCombobox
   Placeholder: [type any text you want]
+  Multi-select: Yes or No
 
 After initialization the plugin can be accessed via JavaScript:
 
@@ -19,7 +20,7 @@ The value of the item can be manupilated via the usual apex item interface. It c
 
 i.e.
   apex.item('P5_NEW').getValue();
-  apex.item('P5_NEW').setValue('PRESIDENT');
+  apex.item('P5_NEW').setValue('1');
   apex.item('P5_NEW').enable();
   apex.item('P5_NEW').disable();
   

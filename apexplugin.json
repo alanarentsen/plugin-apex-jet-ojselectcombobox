@@ -1,34 +1,34 @@
 {
-  "name" : "GuidedTour",
-  "version" : "1.0",
-  "description" : "It´s useful to guide your users through the application, or give your users a first run wizard to explain parts of your app.",
-  "keywords" : ["guide", "tour", "shepherd", "firstrun"],
-  "homepage" : "https://github.com/Dani3lSun/apex-plugin-guidedtour",
+  "name" : "ojSelect / ojCombobox",
+  "version" : "1.4",
+  "description" : "Oracle JET select list item with multiselect, grouping and type ahead search.",
+  "keywords" : ["selectlist", "lov", "select list", "combobox", "cascading lov", "type ahead", "autocomplete", "drop down"],
+  "homepage" : "https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox",
   "bugs" : {
-    "url" : "https://github.com/Dani3lSun/apex-plugin-guidedtour/issues",
-    "email" : "daniel@danielh.de"
+    "url" : "https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox/issues",
+    "email" : "alan.arentsen@database-consultancy.nl"
   },
-  "license" : "MIT",
+  "license" : "GPL",
   "author" : {
-    "name" : "Daniel Hochleitner",
-    "email" : "daniel@danielh.de",
-    "url" : "https://danielhochleitner.de/"
-    "twitter" : "Dani3lSun"
-    "donationUrl" : "https://www.paypal.me/DanielHochleitnerIT/3"
+    "name" : "Alan Arentsen",
+    "email" : "alan.arentsen@database-consultancy.nl",
+    "url" : "http://www.database-consultancy.nl"
+    "twitter" : "alanarentsen"
+    "donationUrl" : "https://www.paypal.me/alanarentsen"
   },
   "repository" : {
     "type" : "git",
-    "url" : "https://github.com/Dani3lSun/apex-plugin-guidedtour.git"
+    "url" : "https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox.git"
   },
   "oracle" : {
     "versions" : ["11.2.0.1", "12.1.0.1"],
     "apex" : {
-      "versions" : ["5.0.0"],
+      "versions" : ["5.1"],
       "plugin" : {
-        "internalName" : "DE.DANIELH.GT.NEWINSTANCE",
-        "type" : "dynamic action",
-        "demo" : "https://apex.oracle.com/pls/apex/f?p=57743:1",
-        "previewImage" : "https://raw.githubusercontent.com/Dani3lSun/apex-plugin-guidedtour/master/preview.png"
+        "internalName" : "COM.ADBC.APEX.JET.OJSELECTCOMBOBOX",
+        "type" : "item",
+        "demo" : "",
+        "previewImage" : "https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox/blob/master/multiSelect.png"
       }
     }
   }

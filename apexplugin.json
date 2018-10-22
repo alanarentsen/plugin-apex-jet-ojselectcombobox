@@ -1,34 +1,48 @@
-{
-  "name" : "ojSelect / ojCombobox",
-  "version" : "1.4",
-  "description" : "Oracle JET select list item with multiselect, grouping and type ahead search.",
-  "keywords" : ["selectlist", "lov", "select list", "combobox", "cascading lov", "type ahead", "autocomplete", "drop down"],
-  "homepage" : "https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox",
-  "bugs" : {
-    "url" : "https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox/issues",
-    "email" : "alan.arentsen@database-consultancy.nl"
+{  
+  "name":"ojSelect / ojCombobox",
+  "version":"1.4",
+  "description":"Oracle JET select list item with multiselect, grouping and type ahead search.",
+  "keywords":[  
+     "selectlist",
+     "lov",
+     "select list",
+     "combobox",
+     "cascading lov",
+     "type ahead",
+     "autocomplete",
+     "drop down"
+  ],
+  "homepage":"https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox",
+  "bugs":{  
+     "url":"https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox/issues",
+     "email":"alan.arentsen@database-consultancy.nl"
   },
-  "license" : "GPL",
-  "author" : {
-    "name" : "Alan Arentsen",
-    "email" : "alan.arentsen@database-consultancy.nl",
-    "url" : "http://www.database-consultancy.nl",
-    "twitter" : "alanarentsen",
-    "donationUrl" : "https://www.paypal.me/alanarentsen"
+  "license":"GPL",
+  "author":{  
+     "name":"Alan Arentsen",
+     "email":"alan.arentsen@database-consultancy.nl",
+     "url":"http://www.database-consultancy.nl",
+     "twitter":"alanarentsen",
+     "donationUrl":"https://www.paypal.me/alanarentsen"
   },
-  "repository" : {
-    "type" : "git",
-    "url" : "https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox.git"
+  "repository":{  
+     "type":"git",
+     "url":"https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox.git"
   },
-  "oracle" : {
-    "versions" : ["11.2.0.1", "12.1.0.1"],
-    "apex" : {
-      "versions" : ["5.1"],
-      "plugin" : {
-        "internalName" : "COM.ADBC.APEX.JET.OJSELECTCOMBOBOX",
-        "type" : "item",
-        "previewImage" : "https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox/blob/master/multiSelect.png"
-      }
-    }
+  "oracle":{  
+     "versions":[  
+        "11.2.0.1",
+        "12.1.0.1"
+     ],
+     "apex":{  
+        "versions":[  
+           "5.1"
+        ],
+        "plugin":{  
+           "internalName":"COM.ADBC.APEX.JET.OJSELECTCOMBOBOX",
+           "type":"item",
+           "previewImage":"https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox/blob/master/multiSelect.png"
+        }
+     }
   }
 }

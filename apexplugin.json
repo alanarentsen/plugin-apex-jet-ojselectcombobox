@@ -41,6 +41,7 @@
         "plugin":{  
            "internalName":"COM.ADBC.APEX.JET.OJSELECTCOMBOBOX",
            "type":"item",
+           "demo" : "https://apex.oracle.com",
            "previewImage":"https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox/blob/master/multiSelect.png"
         }
      }

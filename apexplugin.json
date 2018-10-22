@@ -27,7 +27,7 @@
   },
   "repository":{  
      "type":"git",
-     "url":"https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox"
+     "url":"https://github.com/alanarentsen/plugin-apex-jet-ojselectcombobox.git"
   },
   "oracle":{  
      "versions":[  

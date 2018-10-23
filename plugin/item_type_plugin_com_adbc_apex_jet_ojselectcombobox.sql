@@ -287,7 +287,7 @@ wwv_flow_api.create_plugin(
 ,p_standard_attributes=>'VISIBLE:SESSION_STATE:READONLY:QUICKPICK:SOURCE:ELEMENT:WIDTH:ELEMENT_OPTION:ENCRYPT:LOV:CASCADING_LOV'
 ,p_substitute_attributes=>true
 ,p_subscribe_plugin_settings=>false
-,p_version_identifier=>'1.5'
+,p_version_identifier=>'1.5.1'
 ,p_plugin_comment=>wwv_flow_string.join(wwv_flow_t_varchar2(
 '#IMAGE_PREFIX#libraries/oraclejet/2.0.2/css/libs/oj/v2.0.2/alta/oj-alta-notag-min.css',
 '#PLUGIN_FILES#ojselectcombobox.css',

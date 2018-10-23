@@ -364,7 +364,7 @@ wwv_flow_api.create_plugin_std_attribute(
 ,p_plugin_id=>wwv_flow_api.id(11027934334240450)
 ,p_name=>'LOV'
 ,p_sql_min_column_count=>2
-,p_sql_max_column_count=>2
+,p_sql_max_column_count=>4
 ,p_supported_ui_types=>'DESKTOP'
 ,p_depending_on_has_to_exist=>true
 );

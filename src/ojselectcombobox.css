@@ -3,10 +3,6 @@
   height: 100%;  
 }
 
-.apex-item-ojselect {
-  width: 100%!important
-}
-
 .apex-item-ojselect .oj-select {
   position: relative;
   display: inline-block;
@@ -22,16 +18,16 @@
   text-align: left;
   color: #333;
 /*  background-color: #fcfdfe;*/
-  background-color:#f2f2f2;
+  background-color:#f9f9f9;
   border-style: solid;
-  border-color: #d9d9d9;
+  border-color: #dfdfdf;
   border-width: 1px;
   border-radius: 2px;
   -webkit-appearance: none;
   -webkit-tap-highlight-color: transparent;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
-  display: block;
+ /* display: block;*/
   overflow: hidden;
   position: relative;
   white-space: nowrap;
@@ -55,6 +51,9 @@
   font-size: 1.2rem;
 }
 
+html:not([dir="rtl"]) .apex-item-ojselect .oj-select .oj-select-choice .oj-select-arrow {
+  right: 0;
+}
 
 /* oj-combobox */
 .apex-item-ojselect .oj-combobox {
@@ -71,9 +70,9 @@
   text-align: left;
   color: #333;
 /*  background-color: #fcfdfe;*/
-  background-color:#f2f2f2;
+  background-color:#f9f9f9;
   border-style: solid;
-  border-color: #d9d9d9;
+  border-color: #dfdfdf;
   border-width: 1px;
   border-radius: 2px;
   -webkit-appearance: none;
@@ -82,7 +81,7 @@
   box-sizing: border-box;
   height: 2.286rem;
   line-height: 2.286rem;
-  display: block;
+ /* display: block;*/
   outline: 0;
   overflow: hidden;
   position: relative;
@@ -97,13 +96,14 @@
   box-shadow: none;
   outline: 0;
 /*  background-color: #fcfdfe;*/
-background-color:#f2f2f2;
+background-color:#f9f9f9;
 color: #333;
   display: inline-block;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 1.2rem;
+  order: 0;
 }
 
 .apex-item-ojselect .oj-combobox .oj-combobox-choice .oj-combobox-clear-entry {
@@ -122,7 +122,7 @@ color: #333;
 
    .a-IG .apex-item-ojselect .oj-select .oj-select-choice {
     height: 100%;
-    display: table;
+  /* display: table;*/
     width: 100%;
   }
 
@@ -146,8 +146,10 @@ color: #333;
   
   .a-IG .apex-item-ojselect .oj-combobox .oj-combobox-choice {
     height: 100%;
-    display: table;
+  /*  display: table;*/
     width: 100%;
+    padding: 0px;
+    border: 0px;
   }
   
   .a-IG .apex-item-ojselect .oj-combobox .oj-combobox-choice .oj-combobox-input {
@@ -155,6 +157,7 @@ color: #333;
     vertical-align: middle;
     display: table-cell;
     text-align: left;
+    /*padding: 0px;*/
   }
 
   .a-IG .apex-item-ojselect .oj-combobox .oj-combobox-choice .oj-combobox-clear-entry {
@@ -170,11 +173,16 @@ color: #333;
   outline: 0;
 }
 
+/* if error change to apex border style */
+.apex-item-plugin .apex-page-item-error {
+    background-color: #fff!important;
+  border-color: #eb6562!important;
+}
 /* if selected change to apex border style */
 .apex-item-ojselect:focus, .oj-select:focus, .oj-select-choice:focus, .oj-combobox:focus, .oj-combobox-choice:focus, .oj-combobox-input:focus,
  .apex-item-ojselect:focus-within, .oj-select:focus-within, .oj-select-choice:focus-within, .oj-combobox:focus-within, .oj-combobox-choice:focus-within, .oj-combobox-input:focus-within {
     background-color: #fff!important;
-  border-color: #2578cf!important;
+  border-color: #0572CE!important;
 }
 
 .apex-item-ojselect:hover, .oj-select:hover, .oj-select-choice:hover, .oj-listbox-drop:hover, .oj-combobox:hover, .oj-combobox-choice:hover, .oj-combobox-input:hover {

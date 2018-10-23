@@ -5,6 +5,11 @@ The following version combinations are tested and working:
 |APEX version|JET version|
 |--|--|
 |5.1|2.0.2|
+|5.1|4.2.0*|
+|18.1|4.2.0|
+|18.2|4.2.0|
+
+_* not supported by Oracle. Use with caution if you use another JET version than the one shipped with APEX.
 
 ## Settings
 

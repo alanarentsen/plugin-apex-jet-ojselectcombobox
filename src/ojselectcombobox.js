@@ -2,7 +2,7 @@
 
 var adbc = adbc || {};
 adbc.jet_version = require.s.contexts._.config.paths.ojs.substring(require.s.contexts._.config.paths.ojs.lastIndexOf("/oraclejet/") + 11
-                                                                  ,require.s.contexts._.config.paths.ojs.lastIndexOf("/js/"));
+    , require.s.contexts._.config.paths.ojs.lastIndexOf("/js/"));
 adbc.app_id = apex.item('pFlowId').getValue();
 adbc.app_page_id = apex.item('pFlowStepId').getValue();
 adbc.app_base_url = apex_img_dir + 'libraries/oraclejet/' + adbc.jet_version + '/js/';
@@ -78,65 +78,10 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
 
         //initialize view and viewmodel
         require(['ojs/ojcore', 'knockout', 'jquery', 'ojs/ojknockout', 'ojs/ojselectcombobox'
-                ,'css!' + adbc.app_base_css_url + 'libs/oj/v' + adbc.jet_version + '/alta/oj-alta-notag-min.css'],
+            , 'css!' + adbc.app_base_css_url + 'libs/oj/v' + adbc.jet_version + '/alta/oj-alta-notag-min.css'],
             function (oj, ko, $) {
                 //make knockout global to get to the module data
                 adbc.ko = ko;
-
-                //define the function to convert the options JSON to a HTML list
-                var constructList = function (data) {
-                    var groupList = document.createElement('ul');
-                    groupList.setAttribute('id', itemId + '_LIST');
-
-                    data.forEach(function (item) {
-                        var groupItem = document.createElement('li');
-
-                        if (item.children) {
-                            var groupTitle = document.createElement('div');
-                            groupTitle.appendChild(document.createTextNode(item.label));
-                            var childrenList = document.createElement('ul');
-
-                            item.children.forEach(function (item) {
-                                var childItem = document.createElement('li');
-                                childItem.setAttribute('oj-data-value', item.value);
-                                var childSpan = document.createElement('span');
-                                if (item.icon && item.icon.match(/\//)) { 
-                                    var childImg = document.createElement('img');
-                                    childImg.setAttribute('src', item.icon);
-                                    childImg.setAttribute('role', 'presentation');
-                                    childImg.setAttribute('style', 'vertical-align:middle');
-                                    childSpan.appendChild(childImg);
-                                } else {
-                                    childSpan.setAttribute('class', item.icon);
-                                }
-                                childItem.appendChild(childSpan);
-                                childItem.appendChild(document.createTextNode(' ' + item.label));
-                                childrenList.appendChild(childItem);
-                            });
-
-                            groupItem.appendChild(groupTitle);
-                            groupItem.appendChild(childrenList);
-                        } else {
-                            groupItem.setAttribute('oj-data-value', item.value);
-                            var childSpan = document.createElement('span');
-                            if (item.icon && item.icon.match(/\//)) { 
-                                var childImg = document.createElement('img');
-                                childImg.setAttribute('src', item.icon);
-                                childImg.setAttribute('role', 'presentation');
-                                childImg.setAttribute('style', 'vertical-align:middle');
-                                childSpan.appendChild(childImg);
-                            } else {
-                                childSpan.setAttribute('class', item.icon);
-                            }
-                            groupItem.appendChild(childSpan);
-                            groupItem.appendChild(document.createTextNode(' ' + item.label));
-                        }
-
-                        groupList.appendChild(groupItem);
-                    });
-
-                    document.body.appendChild(groupList);
-                }
 
                 //instantiate the viewModel of this view
                 viewModel = new (function () {
@@ -144,16 +89,22 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                     self.values = ko.observableArray([]);
 
                     self.options = ko.observableArray(JSON.parse(options.options));
-                    self.component = ko.observable(options.component);
-                    self.placeholder = ko.observable(options.placeholder);
+                    self.component = options.component;
+                    self.placeholder = options.placeholder;
                     self.disabled = ko.observable(options.disabled);
-                    self.multiple = ko.observable(options.multiple);
+                    self.multiple = options.multiple;
 
-                    self.displayValueFor = function (values) {
+                    self.displayValueFor = function (value) {
                         let displayValues = [];
                         let dataArr = self.options();
 
-                        values.forEach((value, index) => {
+                        let valueArray = util.toArray(value);
+                        valueArray = valueArray.filter(function (val) {
+                            return val && val !== '';
+                        });
+                        valueArray = valueArray.map(String);
+
+                        valueArray.forEach((value, index) => {
                             let label = '';
                             if (dataArr.length > 0 && typeof dataArr.children) {
                                 //we have groups
@@ -178,7 +129,83 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                         });
 
                         return displayValues;
-                    };
+                    }; //displayValueFor
+
+                    self.constructOption = function (DOMcontainer, option) {
+                        var childSpan = document.createElement('span');
+                        if (option.icon && option.icon.match(/\//)) {
+                            var childImg = document.createElement('img');
+                            childImg.setAttribute('src', option.icon);
+                            childImg.setAttribute('role', 'presentation');
+                            childImg.setAttribute('style', 'vertical-align:middle');
+                            childSpan.appendChild(childImg);
+                        } else {
+                            childSpan.setAttribute('class', option.icon);
+                        }
+                        DOMcontainer.appendChild(childSpan);
+                        DOMcontainer.appendChild(document.createTextNode(' ' + option.label));
+
+                        return DOMcontainer;
+                    } //constructOption
+
+                    self.constructGrpOption = function (option) {
+                        return document.createTextNode(option.label);
+                    } //constructGrpOption
+
+
+                    //define the function to convert the options JSON to a HTML list (JET v2.0.2 only)
+                    self.listRenderer = function (data) {
+                        var groupList = document.createElement('ul');
+                        groupList.setAttribute('id', itemId + '_LIST');
+
+                        data.forEach(function (item) {
+                            var groupItem = document.createElement('li');
+
+                            if (item.children) {
+                                //it's a group
+                                //create group title node
+                                var groupTitle = document.createElement('div');
+                                groupTitle.appendChild(self.constructGrpOption(item));
+                                var childrenList = document.createElement('ul');
+
+                                //create all child entries
+                                item.children.forEach(function (item) {
+                                    var childItem = document.createElement('li');
+                                    childItem.setAttribute('oj-data-value', item.value);
+                                    childItem = self.constructOption(childItem, item);
+                                    childrenList.appendChild(childItem);
+                                });
+
+                                //add all to group item
+                                groupItem.appendChild(groupTitle);
+                                groupItem.appendChild(childrenList);
+                            } else {
+                                //it's a single entry
+                                //create entry
+                                groupItem.setAttribute('oj-data-value', item.value);
+                                groupItem = self.constructOption(groupItem, item);
+                            }
+
+                            groupList.appendChild(groupItem);
+                        });
+
+                        document.body.appendChild(groupList);
+                    } //listRenderer
+
+                    //define the function to render the option, called by the component (JET v4.2.0 only)
+                    self.optionRenderer = function (optionContext) {
+                        var labelNode = document.createElement('div');
+
+                        if (optionContext.leaf) {
+                            //it's a single entry
+                            labelNode = self.constructOption(labelNode, optionContext.data);
+                        } else {
+                            //it's a group entry
+                            labelNode.appendChild(self.constructGrpOption(optionContext.data));
+                        }
+
+                        return { insert: labelNode };
+                    } //optionRenderer
 
                     self.values.subscribe(function (values) {
                         validityItem$.val(values);
@@ -190,7 +217,6 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                             var newValue;
                             if (!options.multiple) {
                                 newValue = { v: values[0], d: displayValues[0] };
-
                             } else {
                                 newValue = { v: values, d: displayValues };
                             }
@@ -203,6 +229,56 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                         }
                     });
                 }); //new viewModel
+
+                var renderJETComponent = function () {
+                    var JETComponent;
+                    switch (adbc.jet_version) {
+                        case '2.0.2':
+                            JETComponent = '<div data-bind="ojComponent: {' +
+                                'component:component' +
+                                //',options:options' +
+                                ',list:\'' + itemId + '_LIST\'' +
+                                ',value:values' +
+                                ',placeholder:placeholder' +
+                                ',disabled:disabled' +
+                                ',multiple:multiple' +
+                                '}"/>';
+                            break;
+                        case '4.2.0':
+                            var componentName;
+                            switch (options.component) {
+                                case 'ojSelect':
+                                    if (options.multiple) {
+                                        componentName = 'oj-select-many';
+                                    } else {
+                                        componentName = 'oj-select-one';
+                                    }
+                                    break;
+                                case 'ojCombobox':
+                                    if (options.multiple) {
+                                        componentName = 'oj-combobox-many';
+                                    } else {
+                                        componentName = 'oj-combobox-one';
+                                    }
+                                    break;
+                                default:
+                                    throw 'This type of component is not supported.';
+                            }
+
+                            JETComponent = '<' + componentName + ' ' +
+                                'options="[[options]]" ' +
+                                'value={{values}} " ' +
+                                'placeholder={{placeholder}} ' +
+                                'disabled={{disabled}} ' +
+                                'option-renderer="[[optionRenderer]]"' +
+                                '/>';
+                            break;
+                        default:
+                            JETComponent = '<span>This version of JET is not supported.</span>';
+                    }
+
+                    return JETComponent;
+                } //renderJETComponent
 
                 //instantiate the view by editing the container made by the plugin PL/SQL code
                 if (ig.isGrid) {
@@ -225,38 +301,32 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                             //debugger;
                         });
 
-                    item$.wrapInner('<div data-bind="ojComponent: {' +
-                        'component:component' +
-                        //',options:options' +
-                        ',list:\'' + itemId + '_LIST\'' +
-                        ',value:values' +
-                        ',placeholder:placeholder' +
-                        ',disabled:disabled' +
-                        ',multiple:multiple' +
-                        '}"/>');
+                    item$.wrapInner(renderJETComponent);
                     item$.css('width', '100%');
                     item$.parent().css('height', '100%');
                 } else {
-                    item$.wrapInner('<div data-bind="ojComponent: {' +
-                        'component:component' +
-                        //',options:options' +
-                        ',list:\'' + itemId + '_LIST\'' +
-                        ',value:values' +
-                        ',placeholder:placeholder' +
-                        ',disabled:disabled' +
-                        ',multiple:multiple' +
-                        '}"/>');
+                    item$.wrapInner(renderJETComponent);
                 };
 
                 apex.server.plugin(options.ajaxIdentifier, {}, { dataType: 'json' })
                     .then(function (data) {
-                        //activate knockout for the view and viewmodel to become active
+                        //populate the viewmodel with data
                         viewModel.options(data);
                         viewModel.values(options.value);
-                        constructList(data);
+
+                        //prepare the list options before knockout is activated
+                        switch (adbc.jet_version) {
+                            case '2.0.2':
+                                viewModel.listRenderer(data);
+                                break;
+                            case '4.2.0':
+                                break;
+                        }
+
+                        //activate knockout for the view and viewmodel to become active
                         ko.applyBindings(viewModel, item$[0]);
                     }, function (data) {
-                        data.responseJSON = {error: "Invalid Ajax call!"} 
+                        data.responseJSON = { error: "Invalid Ajax call!" }
                     });
             } //callback
         ); //require
@@ -337,8 +407,8 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
     return {
         create: _create
         , items: items
-        , info: function () { return 'ojSelectCombobox plugin for OJET v2.0.2' }
-        , version: function () { return '1.4' }
+        , info: function () { return 'ojSelectCombobox plugin for OJET v2.0.2 / v4.2.0' }
+        , version: function () { return '1.5' }
     };
 
 })(apex.debug, apex.util, apex.server, apex.item, apex.message);

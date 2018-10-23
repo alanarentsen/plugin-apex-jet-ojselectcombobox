@@ -106,7 +106,7 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
 
                         valueArray.forEach((value, index) => {
                             let label = '';
-                            if (dataArr.length > 0 && typeof dataArr.children) {
+                            if (dataArr.length > 0 && typeof dataArr.children !== 'undefined') {
                                 //we have groups
                                 let dataGroup = dataArr.find(group => group.children.find(option => option.value === value));
                                 if (dataGroup) {
@@ -377,14 +377,23 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                 viewModel.disabled(false);
             },
             displayValueFor: function (value) {
-                //search the return value in the viewModel and return the display value
-                var valueArray = util.toArray(value);
-                valueArray = valueArray.filter(function (val) {
-                    return val && val !== '';
-                });
-                valueArray = valueArray.map(String);
+                if (viewModel.values) {
+                    //search the return value in the viewModel and return the display value
+                    var valueArray = util.toArray(value);
+                    valueArray = valueArray.filter(function (val) {
+                        return val && val !== '';
+                    });
+                    valueArray = valueArray.map(String);
 
-                return viewModel.displayValueFor(valueArray);
+                    //return the displayValue of the item from the viewModel
+                    viewModel.displayValueFor(valueArray);
+                }
+
+                if (!value) {
+                    value = '';
+                }
+
+                return value;
             }
         }); //item.create
 

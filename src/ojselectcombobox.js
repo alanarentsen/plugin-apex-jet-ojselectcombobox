@@ -8,13 +8,26 @@ adbc.app_page_id = apex.item('pFlowStepId').getValue();
 adbc.app_base_url = apex_img_dir + 'libraries/oraclejet/' + adbc.jet_version + '/js/';
 adbc.app_base_css_url = apex_img_dir + 'libraries/oraclejet/' + adbc.jet_version + '/css/';
 adbc.ko = {};
+adbc.koVersion = '';
+
+// The version of Knockout changed from 3.4.0 to 3.5.0 in JET 7.2.0. It's the same in
+// JET 8.0.0.
+switch (adbc.jet_version) {
+    case '2.0.2': // APEX 5.1
+    case '4.2.0': // APEX 18.1-18.2
+    case '6.1.0': // APEX 19.1
+        adbc.koVersion = '3.4.0';
+        break;
+    default:      // 7.2.0 APEX 19.2, 8.0.0 APEX 20.1???
+        adbc.koVersion = '3.5.0';
+}
 
 //load knockout because [require jet] from apex doesn't
 requirejs.config(
     {
         paths:
         {
-            'knockout': adbc.app_base_url + 'libs/knockout/knockout-3.4.0',
+            'knockout': adbc.app_base_url + 'libs/knockout/knockout-' + adbc.koVersion,
             'css': adbc.app_base_url + 'libs/require-css/css.min'
         },
     }
@@ -192,7 +205,7 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                         document.body.appendChild(groupList);
                     } //listRenderer
 
-                    //define the function to render the option, called by the component (JET v4.2.0 only)
+                    //define the function to render the option, called by the component (JET v4.2.0+)
                     self.optionRenderer = function (optionContext) {
                         var labelNode = document.createElement('div');
 
@@ -244,7 +257,7 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                                 ',multiple:multiple' +
                                 '}"/>';
                             break;
-                        case '4.2.0':
+                        default:
                             var componentName;
                             switch (options.component) {
                                 case 'ojSelect':
@@ -266,15 +279,13 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                             }
 
                             JETComponent = '<' + componentName + ' ' +
+                                'id=' + itemId + '_OJETELEMENT ' +
                                 'options="[[options]]" ' +
                                 'value={{values}} " ' +
                                 'placeholder={{placeholder}} ' +
                                 'disabled={{disabled}} ' +
-                                'option-renderer="[[optionRenderer]]"' +
+                                'option-renderer="[[optionRenderer]]" ' +
                                 '/>';
-                            break;
-                        default:
-                            JETComponent = '<span>This version of JET is not supported.</span>';
                     }
 
                     return JETComponent;
@@ -315,16 +326,13 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
                         viewModel.values(options.value);
 
                         //prepare the list options before knockout is activated
-                        switch (adbc.jet_version) {
-                            case '2.0.2':
-                                viewModel.listRenderer(data);
-                                break;
-                            case '4.2.0':
-                                break;
+                        if (adbc.jet_version === '2.0.2') {
+                            viewModel.listRenderer(data);
                         }
 
                         //activate knockout for the view and viewmodel to become active
                         ko.applyBindings(viewModel, item$[0]);
+                        document.getElementById(itemId + '_OJETELEMENT').refresh();
                     }, function (data) {
                         data.responseJSON = { error: "Invalid Ajax call!" }
                     });
@@ -416,8 +424,8 @@ widget.ojet.ojselectcombobox = (function (debug, util, server, item, message) {
     return {
         create: _create
         , items: items
-        , info: function () { return 'ojSelectCombobox plugin for OJET v2.0.2 / v4.2.0' }
-        , version: function () { return '1.5' }
+        , info: function () { return 'ojSelectCombobox plugin for OJET' }
+        , version: function () { return '1.6' }
     };
 
 })(apex.debug, apex.util, apex.server, apex.item, apex.message);
